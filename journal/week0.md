@@ -29,8 +29,8 @@
 
 ### Create a Billing Alarm
 
-![Billing Alarm](/assets/billing-alarm2.png)
-![Billing Alarm2](/assets/billing-alarm.png)
+![Billing Alarm](/assets/billing-alarm1.png)
+![Billing Alarm2](/assets/billing-alarm2.png)
 
 ### Create a Budget
 
