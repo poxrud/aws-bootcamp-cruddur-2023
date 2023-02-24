@@ -1,6 +1,6 @@
-# vscode:
-#   extensions:
-#     - 42Crunch.vscode-openapi
+vscode:
+  extensions:
+    - 42Crunch.vscode-openapi
 
 tasks:
   - name: aws-cli
