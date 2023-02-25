@@ -74,3 +74,14 @@ chmod +x run_flask.sh
 
 You can see it run below:
 ![Docker CMD](/assets/docker-CMD.png)
+
+## Push and tag a image to DockerHub
+- I created a dockerhub free account.
+- I build the flask docker image and then tagged it using the command:
+`docker tag backend-flask poxrud/backendv1`
+
+- I then pushed it to dockerhub with:
+`docker push poxrud/backendv1:latest`
+
+Here is a screenshot of my docker image on dockerhub:
+![dockerhub image](/assets/dockerhub.png)
