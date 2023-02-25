@@ -7,7 +7,8 @@ I committed all my code to *week1* branch and them merged it into main when all 
 I created the docker files for:
 - Flask backend
 - React Frontend
-The dockerfile's and docker-composed can be found in my repo.
+
+The dockerfiles and docker-compose can be found in my repo.
 
 Here is evidence of the docker images running:
 
@@ -41,8 +42,8 @@ Here is evidence of a successful /api/activities/notifications response.
 ![Notifications Activities](/assets/notifications-activities.png)
 
 ## Write a React Page for Notifications
-Created a new React Page components to display activity notifications.
-Here is evidence of a succfull display of activity notifications.
+Created a new React page component to display activity notifications.
+Here is evidence of a succefull display of activity notifications.
 
 ![Notifications Activities](/assets/react-notifications.png)
 
@@ -51,6 +52,6 @@ Here is evidence of me running a query on a running DynamoDB container.
 ![DynamoDB](/assets/dynamodb.png)
 
 ## Run Postgres Container and ensure it works
-Here is evidence of me running a query on a running DynamoDB container.
+Here is evidence of me connecting to PostgreSQL using Database Explorer
 ![Postgresql](/assets/postgresql.png)
 
