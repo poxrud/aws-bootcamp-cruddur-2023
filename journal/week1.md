@@ -73,4 +73,4 @@ chmod +x run_flask.sh
 ```
 
 You can see it run below:
-!(Docker CMD)[/assets/docker-CMD.png]
+![Docker CMD](/assets/docker-CMD.png)
