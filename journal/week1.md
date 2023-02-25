@@ -55,3 +55,22 @@ Here is evidence of me running a query on a running DynamoDB container.
 Here is evidence of me connecting to PostgreSQL using Database Explorer
 ![Postgresql](/assets/postgresql.png)
 
+# Homework Challenges
+
+## Run the dockerfile CMD as an external script
+I created a bash script called `run_flask.sh`
+with the following code inside:
+
+```bash
+#!/bin/bash
+python3 -m flask run --host=0.0.0.0 --port=4567
+```
+I then gave it executable permissions and ran it:
+
+```bash
+chmod +x run_flask.sh
+./run_flask.sh
+```
+
+You can see it run below:
+!(Docker CMD)[/assets/docker-CMD.png]
