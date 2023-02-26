@@ -85,3 +85,25 @@ You can see it run below:
 
 Here is a screenshot of my docker image on dockerhub:
 ![dockerhub image](/assets/dockerhub.png)
+
+## Implement a healthcheck in the V3 Docker compose file
+Added a healthcheck to the Postgres db service. 
+Made the flask backend depend on the postgres healthcheck
+
+Healthcheck:
+
+```yml
+healthcheck:
+  test: ["CMD-SHELL", "pg_isready"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+```
+
+here is flask-backend depending on the service:
+
+```yml
+depends_on:
+  db:
+    condition: service_healthy
+```
