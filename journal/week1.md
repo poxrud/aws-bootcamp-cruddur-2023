@@ -107,3 +107,15 @@ depends_on:
   db:
     condition: service_healthy
 ```
+
+## Learn how to install Docker on your localmachine and get the same containers running outside of Gitpod / Codespaces
+I installed *docker-desktop* on my mac and then cloned this repo on my local
+machine with `git clone https://github.com/poxrud/aws-bootcamp-cruddur-2023`
+
+I then entered the `frontend-react-js` and ran `npm i`.
+
+When it completed I went back to the previous directory and ran docker-compose with:
+`docker-compose up`. 
+
+Here is the screenshot of the images running successfully on my local machine:
+![docker-desktop](/assets/docker-desktop.png)
