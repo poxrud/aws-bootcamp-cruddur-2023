@@ -119,3 +119,60 @@ When it completed I went back to the previous directory and ran docker-compose w
 
 Here is the screenshot of the images running successfully on my local machine:
 ![docker-desktop](/assets/docker-desktop.png)
+
+## Launch an EC2 instance that has docker installed, and pull a container to demonstrate you can run your own docker processes.
+I used the AWS Console to launch a new EC2 image based on the most current *Amazon Linux 2 AMI*. The instance launched was t2.micro so that I would stay within the free-tier.
+
+To make things easier I launched an instance without a keypair and instead accessed
+it using *EC2 Instance Connect*.
+![instance connect](/assets/instance-connect.png)
+
+Then I installed docker based on the instructions I found here:
+[https://stackoverflow.com/questions/46533628/aws-ec2-ami-for-running-docker-images](https://stackoverflow.com/questions/46533628/aws-ec2-ami-for-running-docker-images)
+
+The commands were:
+
+```bash
+yum update -y
+amazon-linux-extras install docker
+service docker start
+usermod -a -G docker ec2-user
+chkconfig docker on
+```
+Once I had docker installed, I installed git with
+
+```bash
+sudo yum install git
+```
+
+At this point I realized that I was missing nodejs and found the instructions
+on AWS's docs on how to install it.
+[Install NodeJS link](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html)
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+. ~/.nvm/nvm.sh
+nvm install 16
+```
+
+At this point I tried running `docker-compose` and realized that this also needs to be installed.
+
+I installed it with:
+
+```bash
+pip3 install docker-compose
+```
+
+Finally,  I cloned my bootcamp repo and ran docker compose.
+
+```bash
+git clone https://github.com/poxrud/aws-bootcamp-cruddur-2023/
+cd aws-bootcamp-cruddur-2023/frontend-react-js
+npm i
+cd ..
+docker-compose up
+```
+This resulted in the successful running of all the docker images, as
+seen in the image below.
+
+![docker ec2](/assets/docker-ec2.png)
