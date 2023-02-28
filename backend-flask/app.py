@@ -14,7 +14,18 @@ from services.messages import *
 from services.create_message import *
 from services.show_activity import *
 
+# AWS X-RAY --------------
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
+xray_url = os.getenv("AWS_XRAY_URL")
+xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
+
+
 app = Flask(__name__)
+
+# AWS X-RAY -------------
+XRayMiddleware(app, xray_recorder)
+
 frontend = os.getenv('FRONTEND_URL')
 backend = os.getenv('BACKEND_URL')
 origins = [frontend, backend]
