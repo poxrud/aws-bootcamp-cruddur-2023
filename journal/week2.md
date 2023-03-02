@@ -38,6 +38,26 @@ my backend.
 
 ![xray trace](/assets/xray-trace.png)
 
+## Instrument Honeycomb with OTEL
+
+I followed the week2 instructions [here](https://github.com/omenking/aws-bootcamp-cruddur-2023/blob/week-2/journal/week2.md) and did not have any issues implementing Honeycomb.
+
+To summarize I did the following steps:
+
+- added opentelemetry libs to requirements.txt and installed them
+- added the OTEL middleware to `app.py` in `/backend-flask`
+- added reference to the two HONEYCOMB related envronmental variables to docker-compose.yml
+- set the values for the env variables using gitpod's `gp env` command
+
+Here are some screenshots of honeycomb successfully receiving spans:
+![honeycomb1](/assets/honeycomb1.png)
+![honeycomb2](/assets/honeycomb2.png)
+
+and here is an email that I received from honeycomb, confirming that they have created
+a new dataset based on the incoming data.
+
+![honeycomb-dataset](/assets/honeycomb-email.png)
+
 # Homework Challenges
 
 ## Create an X-Ray Subsegment
