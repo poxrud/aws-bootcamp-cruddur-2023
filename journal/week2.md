@@ -58,6 +58,49 @@ a new dataset based on the incoming data.
 
 ![honeycomb-dataset](/assets/honeycomb-email.png)
 
+## Configure custom logger to send to CloudWatch Logs
+
+I followed the week2 instructions and did not have any issues implementing
+CloudWatch Logs into the backend-flask application.
+
+NOTE: In order to reuse the same Logger instance throughout my application and
+without having to pass it around as an argument, I created a logger.py module.
+I placed the module inside the `backend-fask/utils` directory.
+
+This is the contents of the logger module:
+
+```python
+import watchtower
+import logging
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler()
+cw_handler = watchtower.CloudWatchLogHandler(log_group='cruddur')
+LOGGER.addHandler(console_handler)
+LOGGER.addHandler(cw_handler)
+```
+
+Then whenever I need to use the logger I can simply import it and use it
+directly.
+
+```python
+from utils.logger import LOGGER
+LOGGER.info("HomeActivities")
+```
+
+After setting the region and API keys in docker-compose.yml and running `docker-compose up`
+I was able to get some logs from CWLogs.
+
+Here is a screenshot of my CWLogs Log Group:
+![Crudder Log Group](/assets/crudder-log-group.png)
+
+Here are logs being sent to the Crudder log group
+![Crudder Log Stream](/assets/crudder-log-stream.png)
+
+And here is a custom log message "HomeActivities" being sent from the `/api/activities/home` API endpoint
+![HomeActivities-logs](/assets/HomeActivities-logs.png)
+
 # Homework Challenges
 
 ## Create an X-Ray Subsegment
