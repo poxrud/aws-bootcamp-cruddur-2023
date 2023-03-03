@@ -101,6 +101,47 @@ Here are logs being sent to the Crudder log group
 And here is a custom log message "HomeActivities" being sent from the `/api/activities/home` API endpoint
 ![HomeActivities-logs](/assets/HomeActivities-logs.png)
 
+## Integrate Rollbar and capture an error
+
+I successfully integrated Rollbar and captured an error by hitting an incorrect api endpoint.
+
+To test of sending a custom message to rollbar I added a new API endpoint to the
+bottom of app.py file with the following code:
+
+```python
+...
+
+# Rollbar test path ------------
+@app.route('/rollbar/test')
+def rollbar_test():
+    rollbar.report_message('Hello World!', 'warning')
+    return "Hello World!"
+
+if __name__ == "__main__":
+  app.run(debug=True)
+```
+
+I then visited the API endpoint `/api/rollbar/test` and checked the Rollbar UI to see if data
+was sent.
+
+Here you can see that Rollbar received the _Hello World_ message.
+![rollbar-helloworld](/assets/rollbar-helloworld.png)
+
+The second part of the homework required us to capture an application error
+with rollbar.
+
+I forced an error by visiting an invalid API endpoint, specifically:
+
+```
+/api/activities/home2
+```
+
+This created a `NameError`.
+
+Here is a screenshot of the Rollbar UI where the NameError stacktrace is captured:
+
+![rollbar-error-capture](/assets/rollbar-error-capture.png)
+
 # Homework Challenges
 
 ## Create an X-Ray Subsegment
