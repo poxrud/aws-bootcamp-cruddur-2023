@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
+from utils.logger import LOGGER
+
 class HomeActivities:
   def run():
+    LOGGER.info("HomeActivities")
     now = datetime.now(timezone.utc).astimezone()
     results = [{
       'uuid': '68f126b0-1ceb-4a33-88be-d90fa7109eee',

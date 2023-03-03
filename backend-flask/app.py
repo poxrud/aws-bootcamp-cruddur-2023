@@ -35,6 +35,12 @@ provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
+
+# CloudWatch Logs ------------
+
+from time import strftime
+from utils.logger import LOGGER
+
 app = Flask(__name__)
 
 # AWS X-RAY -------------
@@ -150,3 +156,9 @@ def data_activities_reply(activity_uuid):
 
 if __name__ == "__main__":
   app.run(debug=True)
+
+@app.after_request
+def after_request(response):
+    timestamp = strftime('[%Y-%b-%d %H:%M]')
+    LOGGER.error('%s %s %s %s %s %s', timestamp, request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
