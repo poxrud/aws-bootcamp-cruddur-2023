@@ -174,3 +174,70 @@ Here you can see our subsegment `activities-notifications` being captured by X-R
 
 and here is the metadata containing our `result`
 ![notifications-subsegment-raw](/assets/notifications-subsegment-raw.png)
+
+## Add custom instrumentation to Honeycomb to add more attributes and a custom span
+
+I added a custom span called `home-activities-mock-data` to the `/api/activities/home` endpoint inside the `/services/home_activities.py` file.
+
+First we import the opentelemetry tracer with
+
+```python
+from opentelemetry import trace
+tracer = trace.get_tracer("home-activities")
+```
+
+then inside the `run()` function we wrap the code in a block that will create
+our span.
+
+```python
+class HomeActivities:
+  def run():
+
+    with tracer.start_as_current_span("home-activities-mock-data"):
+      now = datetime.now(timezone.utc).astimezone()
+      results = [{
+        ...
+      }]
+    return results
+```
+
+As you can see in the screenshot this was enough to create our custom span.
+
+![custom span](/assets/custom-span.png)
+
+The second part of the requirement was to add some custom attributes to our new span.
+I added two new attributes: `userId` and `now`.
+
+I added the code below at the end of the `run()` function referenced above.
+
+```python
+  ...
+
+  span = trace.get_current_span()
+  span.set_attribute("app.userId", 1001)
+  span.set_attribute("app.now", now.isoformat())
+  return results
+```
+
+The code creates an `app.userId` and `app.now` custom attributes to be sent to Honeycomb,
+under the current active span.
+
+Here is our custom attributes appearing in Honeycomb.
+
+![custom attribute](/assets/honeycomb-custom-attribute.png)
+
+## Run custom queries in Honeycomb and save them later eg. Latency by UserID, Recent Traces
+
+I wanted to run a custom query that would be useful in a real world scenario.
+For example:
+"Find all of our URL's that require a logged in user, that have a large latency (above 50ms)".
+
+This type of a query could potentially find slow pages and as a result improve the user experience of our site.
+
+Here is how the above query was created using Honeycomb's UI:
+
+![honeycomb-query](/assets/honeycomb-custom-query.png)
+
+I was able to find and execute the query at a later time using the _My History_ page:
+
+![Query History](/assets/honeycomb-query-history.png)
