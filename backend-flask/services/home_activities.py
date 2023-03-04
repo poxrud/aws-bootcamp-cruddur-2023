@@ -49,4 +49,7 @@ class HomeActivities:
       'replies': []
     }
     ]
+    span = trace.get_current_span()
+    span.set_attribute("app.userId", 1001)
+    span.set_attribute("app.now", now.isoformat())
     return results
