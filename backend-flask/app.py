@@ -35,7 +35,6 @@ provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
-
 # CloudWatch Logs ------------
 
 from time import strftime
@@ -62,7 +61,7 @@ cors = CORS(
   app, 
   resources={r"/api/*": {"origins": origins}},
   expose_headers="location,link",
-  allow_headers="content-type,if-modified-since",
+  allow_headers=["content-type","if-modified-since", "traceparent"],
   methods="OPTIONS,GET,HEAD,POST"
 )
 
