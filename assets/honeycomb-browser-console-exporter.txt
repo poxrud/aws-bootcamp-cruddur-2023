@@ -1,0 +1,97 @@
+{
+  "traceId": "6e994e8673e93a51200c137330aeddad",
+  "name": "HTTP GET",
+  "id": "60e2c3704ae84981",
+  "kind": 2,
+  "timestamp": 1678112339270000,
+  "duration": 288000,
+  "attributes": {
+    "component": "fetch",
+    "http.method": "GET",
+    "http.url": "https://4567-poxrud-awsbootcampcrudd-seyz5zjj1y7.ws-us89.gitpod.io/api/activities/home",
+    "http.status_code": 200,
+    "http.status_text": "",
+    "http.host": "4567-poxrud-awsbootcampcrudd-seyz5zjj1y7.ws-us89.gitpod.io",
+    "http.scheme": "https",
+    "http.user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
+    "http.response_content_length": 0
+  },
+  "status": {
+    "code": 0
+  },
+  "events": [
+    {
+      "name": "fetchStart",
+      "attributes": {},
+      "time": [
+        1678112339,
+        271900049
+      ]
+    },
+    {
+      "name": "domainLookupStart",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "domainLookupEnd",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "connectStart",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "secureConnectionStart",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "connectEnd",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "requestStart",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "responseStart",
+      "attributes": {},
+      "time": [
+        1678112338,
+        288800049
+      ]
+    },
+    {
+      "name": "responseEnd",
+      "attributes": {},
+      "time": [
+        1678112339,
+        554700049
+      ]
+    }
+  ],
+  "links": []
+}

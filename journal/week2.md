@@ -241,3 +241,30 @@ Here is how the above query was created using Honeycomb's UI:
 I was able to find and execute the query at a later time using the _My History_ page:
 
 ![Query History](/assets/honeycomb-query-history.png)
+
+## Instrument Honeycomb for the frontend-application to observe network latency between frontend and backend
+
+I was able to add front-end instrumentation to my react app by utilizing this guide:
+[Link](https://docs.honeycomb.io/getting-data-in/opentelemetry/browser-js/).
+For simplicity I used the insecure method of embedding my honeycomb API key directly into the web app and sent the traces from the browser direct to honeycomb.
+
+As you can see in the screenshots below I was able to create a new "browser" dataset and send web browser tracing data to honeycomb:
+
+![browser dataset](/assets/browser-dataset.png)
+![honeycomb http get trace](/assets/honeycomb-HTTP-GET-trace.png)
+
+### Tie Front-end and Backend to determine latency
+
+Unfortunately due to what I believe could be an issue with honeycomb's backend I was unable
+to tie the web trace requests with my backened.
+
+Even though I confirmed with DevTools that my browser is sending the correct data,
+honeycomb UI did not set the "traceId" correctly. I have opened a support ticket
+with honeycomb and am hoping to resolve this issue.
+
+Here is my browser sending the correct data:
+![Screenshot ConsoleSpanExporter](/assets/Screenshot-ConsoleSpanExporter.png)
+Here is the error in Honeycomb when tying the frontend to backend:
+![honeycomb error](/assets/honeycomb-error.png)
+Here is the open support ticket:
+![honeycomb support ticket](/assets/honeycomb-support.png)
