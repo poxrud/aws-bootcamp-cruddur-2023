@@ -10,7 +10,7 @@ const HOST = '0.0.0.0';
 const verifier = CognitoJwtVerifier.create({
   userPoolId: process.env.COGNITO_USER_POOL_ID,
   tokenUse: "access",
-  clientId: process.env.COGNITO_USER_POOL_ID,
+  clientId: process.env.COGNITO_WEB_CLIENT_ID,
 });
 
 
@@ -20,10 +20,10 @@ app.get('/verify-cognito-token', async (req, res) => {
   try {
     const token = req.headers.authorization.split(' ')[1];
     const payload = await verifier.verify(token);
-    res.send('Access granted');
+    res.sendStatus(200);
   } catch (err) {
     console.error("Verification ERROR: ", err);
-    res.status(401).send('Invalid token');
+    res.status(401).send(err.message);
   }
 });
 
