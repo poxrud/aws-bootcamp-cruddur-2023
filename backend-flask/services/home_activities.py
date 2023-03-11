@@ -5,7 +5,7 @@ from opentelemetry import trace
 tracer = trace.get_tracer("home-activities")
 
 class HomeActivities:
-  def run():
+  def run(cognito_user_id=None):
     LOGGER.info("HomeActivities")
 
     with tracer.start_as_current_span("home-activities-mock-data"):
@@ -49,6 +49,17 @@ class HomeActivities:
       'replies': []
     }
     ]
+    if cognito_user_id != None:
+      results.append({
+        'uuid': '248959df-3079-4947-b847-9e0892d1bab4',
+        'handle':  'SecretAgent',
+        'message': 'This is a secret page. ONLY VISIBLE WHEN LOGGED IN.',
+        'created_at': (now - timedelta(hours=1)).isoformat(),
+        'expires_at': (now + timedelta(hours=12)).isoformat(),
+        'likes': 0,
+        'replies': []
+      })
+
     span = trace.get_current_span()
     span.set_attribute("app.userId", 1001)
     span.set_attribute("app.now", now.isoformat())

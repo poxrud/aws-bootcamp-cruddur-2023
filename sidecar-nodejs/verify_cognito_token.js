@@ -20,7 +20,7 @@ app.get('/verify-cognito-token', async (req, res) => {
   try {
     const token = req.headers.authorization.split(' ')[1];
     const payload = await verifier.verify(token);
-    res.sendStatus(200);
+    res.status(200).send(payload);
   } catch (err) {
     console.error("Verification ERROR: ", err);
     res.status(401).send(err.message);
