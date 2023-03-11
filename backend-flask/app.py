@@ -2,6 +2,7 @@ from flask import Flask
 from flask import request
 from flask_cors import CORS, cross_origin
 import os
+import requests
 
 from services.home_activities import *
 from services.notifications_activities import *
@@ -102,7 +103,18 @@ def data_create_message():
 
 @app.route("/api/activities/home", methods=['GET'])
 def data_home():
-  data = HomeActivities.run()
+  cognito_user_id = None;
+  auth_header = request.headers.get('Authorization');
+  if auth_header:
+    try:
+      response = requests.get('http://verify-cognito-token:3050/verify-cognito-token', headers={'Authorization': f'{auth_header}'})
+      data = response.json()
+      cognito_user_id = data['username']
+    
+    except:
+      cognito_username = None;
+
+  data = HomeActivities.run(cognito_user_id)
   return data, 200
 
 @app.route("/api/activities/notifications", methods=['GET'])

@@ -33,6 +33,13 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend-react-js:/frontend-react-js
+  verify-cognito-token:
+    environment:
+      COGNITO_USER_POOL_ID: "ca-central-1_PHdtNYjuS"
+      COGNITO_WEB_CLIENT_ID: "1ams60e52fii48ogl892462cb"
+    build: ./sidecar-nodejs
+    ports:
+      - "3050:3050"
 
   dynamodb-local:
     # https://stackoverflow.com/questions/67533058/persist-local-dynamodb-data-in-volumes-lack-permission-unable-to-open-databa
