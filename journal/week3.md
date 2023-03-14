@@ -34,6 +34,31 @@ Amplify.configure({
 
 I made sure that I had the above env variables in my docker-compose file.
 
+Once Auth from Amplify was configured, I modified `HomePageFeed.js` to show different versions of the UI based
+on whether the user is logged in or not. This involved creating a `checkAuth` function shown below. The function gets an
+authenticated user, or null (if not authenticated), and passes that information to the sidebar and the main navigation.
+
+```js
+// check if we are authenicated
+const checkAuth = async () => {
+  Auth.currentAuthenticatedUser({
+    // Optional, By default is false.
+    // If set to true, this call will send a
+    // request to Cognito to get the latest user data
+    bypassCache: false
+  })
+    .then((cognito_user) => {
+      setUser({
+        display_name: cognito_user.attributes.name,
+        handle: cognito_user.attributes.preferred_username
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+};
+```
+
 To create a custom signin page I needed to modify the file `/frontend-react-js/src/pages/SigninPage.js`.
 The modification consisted of importing Amplify and then replacing the original `onsubmit` function
 with my version, shown below:
@@ -134,3 +159,5 @@ Here is a resent email confirmation:
 Here is a modified confirmation page :
 
 ![Email Confirmation Code](/assets/email-confirmation2.png)
+
+## Implement Custom Signup Page
