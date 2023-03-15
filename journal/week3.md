@@ -261,3 +261,91 @@ Here is the new password being set with the reset code:
 Finally, here is a successful password reset screen:
 
 ![Successful password reset](/assets/password-reset.png)
+
+## Verify JWT token server side
+
+Currently, we are not doing any Cognito authorization on our backend, and this needs to be fixed...
+
+In our `SigninPage.js` page, whenever a user successfully signs in we write an `access_token` to localStorage.
+
+```js
+localStorage.setItem(
+  "access_token",
+  user.signInUserSession.accessToken.jwtToken
+);
+```
+
+We will need to pass this token with every API call that we make to our _flask-backend_.
+
+For example: here is how we pass this token in HomePageFeed.js :
+
+```js
+const loadData = async () => {
+    ...
+      const res = await fetch(backend_url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        },
+        method: "GET"
+      });
+      let resJson = await res.json();
+    ...
+```
+
+We basically add an `Authorization: Bearer access_token` header to every fetch call to our backend. This change is made in several files that need to load data from the flask-backend, such as in _ProfileInfo.js_
+
+Now that changed the front-end we need to make changes in the backend-flask.
+
+In the `app.py` add "Authorization" to the allowed cors list, in order to avoid CORS errors.
+
+```py
+cors = CORS(
+  app,
+  resources={r"/api/*": {"origins": origins}},
+  expose_headers="location,link",
+  allow_headers=["content-type","if-modified-since", "traceparent", "Authorization"],
+  methods="OPTIONS,GET,HEAD,POST"
+)
+```
+
+For this homework we will only secure the API route `/api/activities/home`.
+We will make changes in the `data_home()` method of `App.py` and in the `HomeActivites.run()` method in the `/backend-flask/services/home_activities.py`
+
+The data*home() method will use a \_nodejs sidecar* approach of validating Authorization JWT's and will be described in a different section below [here](#hard-decouple-the-jwt-verify-by-implementing-a-container-sidecar-pattern-using-awss-official-aws-jwt-verifyjs-library).
+
+The HomeActivities.run() is modified to accept a cognito_user_id with a default of None. If a user id is provided the method will return results with a secret message, only visible to the logged in user. However if no user is provided then the secret message will not be sent.
+
+In `/backend-flask/services/homeactivities.py`:
+
+```py
+class HomeActivities:
+  def run(cognito_user_id=None):
+
+    ##...
+
+    if cognito_user_id != None:
+      results.append({
+        'uuid': '248959df-3079-4947-b847-9e0892d1bab4',
+        'handle':  'SecretAgent',
+        'message': 'This is a secret page. ONLY VISIBLE WHEN LOGGED IN.',
+        'created_at': (now - timedelta(hours=1)).isoformat(),
+        'expires_at': (now + timedelta(hours=12)).isoformat(),
+        'likes': 0,
+        'replies': []
+      })
+
+    ##...
+    return results
+```
+
+Here is the home screen when the user is not authorized:
+
+![]()
+
+and here it is when it is authorized:
+
+![Authorized Secret Message](/assets/authorized-secret-message.png)
+
+# Additional Homework Challenges
+
+## [Hard] Decouple the JWT verify by implementing a Container Sidecar pattern using AWS’s official Aws-jwt-verify.js library
