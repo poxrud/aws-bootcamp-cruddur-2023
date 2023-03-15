@@ -59,7 +59,21 @@ const checkAuth = async () => {
 };
 ```
 
-To create a custom signin page I needed to modify the file `/frontend-react-js/src/pages/SigninPage.js`.
+The `DesktopSidebar.js` also needed to be modified to show different UI based on the user's logged in/out state.
+
+```js
+let trending;
+let suggested;
+let join;
+if (props.user) {
+  trending = <TrendingSection trendings={trendings} />;
+  suggested = <SuggestedUsersSection users={users} />;
+} else {
+  join = <JoinSection />;
+}
+```
+
+To create a custom SignIn page I needed to modify the file `/frontend-react-js/src/pages/SigninPage.js`.
 The modification consisted of importing Amplify and then replacing the original `onsubmit` function
 with my version, shown below:
 
@@ -94,6 +108,7 @@ Therefore we require modifications to `/frontend-react-js/src/pages/Confirmation
 We replace `onsubmit` with calls to Cognito:
 
 ```js
+//src/pages/ConfirmationPage.js
 const onsubmit = async (event) => {
   event.preventDefault();
   setErrors("");
@@ -161,3 +176,88 @@ Here is a modified confirmation page :
 ![Email Confirmation Code](/assets/email-confirmation2.png)
 
 ## Implement Custom Signup Page
+
+Just like with the above, to create a Signup Page I needed to change the onsubmit function in the `src/pages/Signup.js` file.
+
+```js
+const onsubmit = async (event) => {
+  event.preventDefault();
+  setErrors("");
+  try {
+    const { user } = await Auth.signUp({
+      username: email,
+      password: password,
+      attributes: {
+        name: name,
+        email: email,
+        preferred_username: username
+      },
+      autoSignIn: {
+        // optional - enables auto sign in after user is confirmed
+        enabled: true
+      }
+    });
+    console.log(user);
+    window.location.href = `/confirm?email=${email}`;
+  } catch (error) {
+    console.log(error);
+    setErrors(error.message);
+  }
+  return false;
+};
+```
+
+The code uses Cognito's `Auth.signUp` to create a new user, and redirect the browser to a confirmation page, where users enter the confirmation code that they received through their email.
+The implementation of the Confirmation Page is already explain the section above.
+
+Here is a new user in the AWS Console, that has been created through the front-end.
+
+![New User through Signup](/assets/singup-new-user.png)
+
+## Implement a Custom Recovery Page
+
+The password recovery page has two main functions, request
+to change a password, and then allow user to change that password
+if they provide the correct confirmation code.
+
+Therefore I needed to make two API calls, one to request a password change, and the second to make the change with the correct confirmation code and the new password.
+
+I needed to edit the file `src/pages/RecoverPage.js` and overwrite the two onsubmit functions, as displayed below:
+
+```js
+onst onsubmit_send_code = async (event) => {
+    event.preventDefault();
+    setErrors('')
+    Auth.forgotPassword(username)
+      .then((data) => setFormState('confirm_code'))
+      .catch((err) => setErrors(err.message));
+    return false
+  }
+
+  const onsubmit_confirm_code = async (event) => {
+    event.preventDefault();
+    setErrors('')
+    if (password == passwordAgain) {
+      Auth.forgotPasswordSubmit(username, code, password)
+        .then((data) => setFormState('success'))
+        .catch((err) => setErrors(err.message));
+    } else {
+      setErrors('Passwords do not match')
+    }
+    return false
+  }
+```
+
+These use two Cognito functions `Auth.forgotPassword` and `Auth.forgotPasswordSubmit`.
+
+Here is an email from Cognito after a request to recover the password:
+
+![Password reset](/assets/password-reset-code.png)
+
+Here is the new password being set with the reset code:
+
+![password-recover.png](/assets/password-recover.png)
+
+Finally, here is a successful password reset screen:
+
+![Successful password reset](/assets/password-reset.png)
