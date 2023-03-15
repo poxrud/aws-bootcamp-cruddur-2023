@@ -338,9 +338,9 @@ class HomeActivities:
     return results
 ```
 
-Here is the home screen when the user is not authorized:
+Here is the home screen when the user is not authorized. This is after doing a "sign out".
 
-![]()
+![Unauthorized Message](/assets/unauthorized-message.png)
 
 and here it is when it is authorized:
 
@@ -349,3 +349,158 @@ and here it is when it is authorized:
 # Additional Homework Challenges
 
 ## [Hard] Decouple the JWT verify by implementing a Container Sidecar pattern using AWS’s official Aws-jwt-verify.js library
+
+Here's how I created a nodejs based _sidecar_ in order to verify the JWT tokens using the js based `Aws-jwt-verify.js` library.
+
+- create a new directory for the sidecar
+- create a new nodejs project that uses `Aws-jwt-verify.js`
+- create an expressjs GET api endpoint to check Cognito JWT's
+- dockerize the project
+- add the dockerized container to docker-compose.yml
+- modify backend-flask to use the new sidecar
+
+### create a new folder for the sidecar
+
+In the root directory
+
+```bash
+ mkdir sidecar-nodejs
+ cd sidecar-nodejs
+```
+
+### create a new nodejs project that uses `Aws-jwt-verify.js`
+
+```bash
+ npm init
+ npm i npm aws-jwt-verify --save
+```
+
+### create an expressjs GET api endpoint to check Cognito JWT's
+
+```sh
+npm i express --save
+```
+
+create `verify_cognito_token.js` with the following code:
+
+```js
+"use strict";
+
+import express from "express";
+import { CognitoJwtVerifier } from "aws-jwt-verify";
+
+// Constants
+const PORT = process.env.EXPOSEDPORT || 3050;
+const HOST = "0.0.0.0";
+
+const verifier = CognitoJwtVerifier.create({
+  userPoolId: process.env.COGNITO_USER_POOL_ID,
+  tokenUse: "access",
+  clientId: process.env.COGNITO_WEB_CLIENT_ID
+});
+
+// App
+const app = express();
+app.get("/verify-cognito-token", async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const payload = await verifier.verify(token);
+    res.status(200).send(payload);
+  } catch (err) {
+    console.error("Verification ERROR: ", err);
+    res.status(401).send(err.message);
+  }
+});
+
+app.listen(PORT, HOST, () => {
+  console.log(`Running on http://${HOST}:${PORT}`);
+});
+```
+
+The nodejs application exposes the GET API endpoint `/verify-cognito-token` on port `3050`. If the validation in NOT successful it sends a `401` status header back. If it IS SUCCESSFUL then it sends a `200` status and the _JWT claims_ in the body response.
+
+The application uses environmental variables for the _Cognito User Pool Id_
+and the _Cognito Web Client Id_.
+
+### dockerize the project
+
+Once I validated that my nodejs sidecar works, it was time to Dockerize it.
+I followed the official instructions on: [https://nodejs.org/en/docs/guides/nodejs-docker-webapp/](https://nodejs.org/en/docs/guides/nodejs-docker-webapp/).
+
+Inside my sidecar's project folder I created a `Dockerfile` with the following code:
+
+```Dockerfile
+FROM node:16-slim
+
+ENV PORT=3050
+
+WORKDIR /app
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE ${PORT}
+
+CMD [ "node", "verify_cognito_token.js" ]
+```
+
+In order to speedup docker builds and save on space, create a `.dockerignore` file with the content below:
+
+```
+node_modules
+npm-debug.log
+```
+
+I tested the docker file by first building it and then running it directly:
+
+```bash
+docker build -t cognito-verify-service .
+docker run -p 3050:3050 -d cognito-verify-service
+```
+
+### add the dockerized container to docker-compose.yml
+
+Inside docker-compose.yml I added a new service with the following:
+
+```yml
+verify-cognito-token:
+  environment:
+    COGNITO_USER_POOL_ID: "ca-central-1_PHdtNYjuS"
+    COGNITO_WEB_CLIENT_ID: "1ams60e52fii48ogl892462cb"
+  build: ./sidecar-nodejs
+  ports:
+    - "3050:3050"
+```
+
+### modify backend-flask to use the new sidecar
+
+The final step is to edit `/flask-backend/app.py` to use the sidecar for JWT validation.
+
+We first import the `requests` library in order to make GET requests.
+
+```
+import requests
+```
+
+Then replace `data_home()` with the following:
+
+```py
+def data_home():
+  cognito_user_id = None;
+  auth_header = request.headers.get('Authorization');
+  if auth_header:
+    try:
+      response = requests.get('http://verify-cognito-token:3050/verify-cognito-token', headers={'Authorization': f'{auth_header}'})
+      data = response.json()
+      cognito_user_id = data['username']
+
+    except:
+      cognito_username = None;
+
+  data = HomeActivities.run(cognito_user_id)
+  return data, 200
+```
+
+You can see screenshots of the validation sidecar working [here](#verify-jwt-token-server-side)
