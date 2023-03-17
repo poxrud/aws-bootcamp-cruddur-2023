@@ -5,9 +5,9 @@ NO_COLOR='\033[0m'
 LABEL="db-seed"
 printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
 
-seed_path = "$(realpath .)/db/seed.sql"
+seed_path="$(realpath .)/db/seed.sql"
 
-if ["$1" = "prod"]; then
+if [ "$1" = "prod" ]; then
   echo "Running in production mode"
   URL=$PROD_CONNECTION_URL
 else
