@@ -246,3 +246,122 @@ Here is `bin/db-setup` running, creating our database, loading schema, and seedi
 Here is the `db-sessions` script showing the running postgres sessions:
 
 ![db sesions](/assets/db-sessions.png)
+
+## Install Postgres Driver in Backend Application
+
+Inside `/backend-flask/lib` I added `db.py` with the following content:
+
+```py
+from psycopg_pool import ConnectionPool
+import os
+
+connection_url = os.getenv("CONNECTION_URL")
+pool = ConnectionPool(connection_url)
+
+def query_wrap_object(template):
+  sql = f"""
+  (SELECT COALESCE(row_to_json(object_row),'{{}}'::json) FROM (
+  {template}
+  ) object_row);
+  """
+  return sql
+
+def query_wrap_array(template):
+  sql = f"""
+  (SELECT COALESCE(array_to_json(array_agg(row_to_json(array_row))),'[]'::json) FROM (
+  {template}
+  ) array_row);
+  """
+
+  return sql
+```
+
+I then changed `backend-flask/services/home_activities` to include the following code at the bottom of the `run()` function, instead of the previous mock data.
+
+```py
+...
+
+sql = query_wrap_array("""
+      SELECT
+        activities.uuid,
+        users.display_name,
+        users.handle,
+        activities.message,
+        activities.replies_count,
+        activities.reposts_count,
+        activities.likes_count,
+        activities.reply_to_activity_uuid,
+        activities.expires_at,
+        activities.created_at
+      FROM public.activities
+      LEFT JOIN public.users ON users.uuid = activities.user_uuid
+      ORDER BY activities.created_at DESC
+      """)
+
+      with pool.connection() as conn:
+        with conn.cursor() as cur:
+          cur.execute(sql)
+          # this will return a tuple
+          # the first field being the data
+          json = cur.fetchone()
+
+      return json[0]
+  ...
+```
+
+Here is the front-end running when the backend is using the new Postgres driver:
+
+!["Postgres connector"](/assets/postgresql-connector.png)
+
+## Connect Gitpod to RDS Instance
+
+First I found out gitpod's local IP address, and set it to the environmental variable GITPOD_IP:
+
+![gitpod ip](/assets/GITPOD-IP.png)
+![gitpod ip env set](/assets/GITPOD_IP2.png)
+
+I logged into AWS Console and started up my RDS instance,
+followed by configuring the **inbound** security group rules.
+
+![RDS Security Group](/assets/rds-sg.png)
+
+To test the connection I executed:
+
+```sh
+psql $PROD_CONNECTION_URL
+```
+
+and was successfully connected to RDS.
+
+![RDS Connect Test](/assets/rds-connect-test.png)
+
+Finally, I created the schema on RDS:
+
+![RDS Schema Script](/assets/rds-setup-script.png)
+
+In order to make sure the security group gets updated on every gitpod launch I followed the following steps:
+
+- create `backend-flask/bin/rds-update-sg-rule` with:
+
+```sh
+#! /usr/bin/bash
+
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="rds-update-sg-rule"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+
+aws ec2 modify-security-group-rules \
+ --group-id $DB_SG_ID \
+ --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={Description="GITPOD",IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+```
+
+![Update security group script](/assets/rds-update-sg.png)
+
+- edit `.gitpod.yml` and add the following to the bottom:
+
+```yml
+command: |
+  export GITPOD_IP=$(curl ifconfig.me)
+  source "$THEIA_WORKSPACE_ROOT"/backend-flask/bin/rds-update-sg-rule
+```
