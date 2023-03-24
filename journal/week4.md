@@ -365,3 +365,165 @@ command: |
   export GITPOD_IP=$(curl ifconfig.me)
   source "$THEIA_WORKSPACE_ROOT"/backend-flask/bin/rds-update-sg-rule
 ```
+
+## Create AWS Cognito trigger to insert user into database
+
+Using the code below I created a lambda function to run every time a new user is created using Cognito.
+
+```py
+# AWS/lambdas/cruddur-post-confirmation.py
+import json
+import psycopg2
+import os
+
+
+def lambda_handler(event, context):
+  user = event['request']['userAttributes']
+
+  user_display_name = user['name']
+  user_handle = user['preferred_username']
+  user_email = user['email']
+  user_cognito_id = user['sub']
+
+  try:
+    conn = psycopg2.connect(os.getenv('CONNECTION_URL'))
+    cur = conn.cursor()
+
+    sql = f"""
+    INSERT INTO public.users (display_name, handle, email, cognito_user_id)
+    VALUES(%s, %s, %s, %s)
+    """
+
+    params = [
+      user_display_name,
+      user_handle,
+      user_email,
+      user_cognito_id
+    ]
+
+    cur.execute(sql, *params)
+    conn.commit()
+
+  except (Exception, psycopg2.DatabaseError) as error:
+    print(error)
+
+  finally:
+    if conn is not None:
+      cur.close()
+      conn.close()
+      print('Database connection closed.')
+
+  return event
+```
+
+Here it is on AWS Console
+
+![crudder-post-confirmation](/assets/crudder-post-confirmation.png)
+
+Here it is setup to run as a Cognito trigger:
+
+![crudder-lambda-trigger](/assets/crudder-lambda-trigger.png)
+
+The lambda function needs to run inside the same VPC that RDS is in. To do this it needs
+permissions to be able to add/remove EC2 Network Interfaces so that it could connect to the VPC.
+
+I created an inline policy to get Lambda these permissions. Here is the policy:
+
+```json
+// LambdaVPCAccess
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeInstances",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AttachNetworkInterface"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+Once the permissions were setup I assigned the Lambda to the same VPC as RDS and then gave it the same security group.
+
+In order for the Lambda to be able to connect the RDS they need to have the same security group. This works because of self referencing SG's.
+
+![lambda same vpc and sg](/assets/lambda-vpc-with-sg.png)
+
+Finally, I used the front end to create a new user, confirmed it, and then checked RDS to see if the user
+was added successfully.
+
+![cognito new user in RDS](/assets/cognito-user-in-rds.png)
+
+# Create new activities with a database insert
+
+I first changed `docker-compose.yml` to point the backend to RDS instead of our local db.
+
+```yml
+# CONNECTION_URL: "postgres://postgres:password@db:5432/cruddur"
+CONNECTION_URL: "${PROD_CONNECTION_URL}"
+```
+
+Then based on **omenking**'s _week-4-again_ github repo, and the youtube video [Week 4 - Creating Activities](https://www.youtube.com/watch?v=fTksxEQExL4&list=PLBfufR7vyJJ7k25byhRXJldB5AiwgNnWv&index=49)
+I created the following files.
+
+- backend-flask/db/sql/activities/create.sql
+- backend-flask/db/sql/activities/home.sql
+- backend-flask/db/sql/activities/object.sql
+
+These are SQL templates to be used by `backend-flask/lib/db.py`. This file was copied and modified from omenking's repo.
+
+I then modified `services/create_activity.py` to use the new db.py in order to create a Cruddur activity.
+
+```py
+#services/create_activity.py
+
+# ...
+
+if model['errors']:
+      model['data'] = {
+        'handle': user_handle,
+        'message': message
+      }
+    else:
+      expires_at = (now + ttl_offset)
+      uuid = CreateActivity.create_activity(user_handle, message, expires_at)
+
+      object_json = CreateActivity.query_object_activity(uuid)
+      model['data'] = object_json
+
+    return model
+
+def create_activity(handle, message, expires_at):
+    sql = db.template('activities', 'create')
+    uuid = db.query_commit(sql, {
+      'handle': handle,
+      'message': message,
+      'expires_at': expires_at
+    })
+    return uuid
+
+  def query_object_activity(uuid):
+    sql = db.template('activities', 'object')
+    return db.query_object_json(sql, {
+      'uuid': uuid
+    })
+```
+
+To make things work two more changes were required.
+
+- modify `services/home_activities.py` to use the new SQL templating class
+- modify `app.py` and change the hardcoded `andrewbrown` handle to hardcoded `philoxrud` handle
+
+After the changes I tested the changes in the front end by creating a new activity.
+
+![New Activity](/assets/new_activity1.png)
+
+![New Activity2](/assets/new_activity2.png)
+
+![New Activity3](/assets/new_activity3.png)
