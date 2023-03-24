@@ -2,6 +2,7 @@ from psycopg_pool import ConnectionPool
 import os
 import re
 import sys
+from utils.logger import LOGGER
 from flask import current_app as app
 
 
@@ -46,16 +47,19 @@ class Db:
   def query_commit(self, sql, params={}):
     self.print_sql('commit with returning', sql)
 
-    pattern = r"\bRETURNING\b"
-    is_returning_id = re.search(pattern, sql)
+    pattern = re.compile(r"\bRETURNING\b", re.IGNORECASE)
+    is_returning_id = pattern.search(sql)
 
     try:
       with self.pool.connection() as conn:
         cur = conn.cursor()
         cur.execute(sql, params)
+
         if is_returning_id:
           returning_id = cur.fetchone()[0]
+
         conn.commit()
+
         if is_returning_id:
           return returning_id
     except Exception as err:
