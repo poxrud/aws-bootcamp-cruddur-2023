@@ -28,6 +28,6 @@ tasks:
       source "$THEIA_WORKSPACE_ROOT"/backend-flask/bin/rds/update-sg-rule  
   - name: backend-flask
     init: |
-       cd $THEIA_WORKSPACE_ROOT"/backend-flask/
+       cd "$THEIA_WORKSPACE_ROOT"/backend-flask/
        pip install -r requirements.txt
 
