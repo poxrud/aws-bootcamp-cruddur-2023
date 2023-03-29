@@ -68,7 +68,25 @@ cors = CORS(
 
 @app.route("/api/message_groups", methods=['GET'])
 def data_message_groups():
-  user_handle  = 'andrewbrown'
+  # user_handle  = None;
+  # LOGGER.info("MESSAGEGROUPS")
+  # LOGGER.info(request.headers);
+  # cognito_user_id = None;
+  # auth_header = request.headers.get('Authorization');
+  # if auth_header:
+  #   try:
+  #     response = requests.get('http://verify-cognito-token:3050/verify-cognito-token', headers={'Authorization': f'{auth_header}'})
+  #     data = response.json()
+  #     user_handle = data['preferred_username']
+  #     LOGGER.info(f'Data: {data}')
+
+    
+  #   except:
+  #     cognito_username = None;
+
+
+
+
   model = MessageGroups.run(user_handle=user_handle)
   if model['errors'] is not None:
     return model['errors'], 422

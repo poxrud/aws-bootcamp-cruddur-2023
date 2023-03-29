@@ -165,3 +165,9 @@ The script is available here: https://github.com/poxrud/aws-bootcamp-cruddur-202
 Output after running:
 
 ![Get conversation](/assets/ddb-bin-list-conversation.png)
+
+
+## Implement Update Cognito ID Script for Postgres Database
+
+- set env variable AWS_COGNITO_USER_POOL_ID to ca-central-1_PHdtNYjuS
+export AWS_COGNITO_USER_POOL_ID="ca-central-1_PHdtNYjuS"
