@@ -1,9 +1,20 @@
+from flask import got_request_exception
+import rollbar.contrib.flask
+import rollbar
+from utils.logger import LOGGER
+from time import strftime
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry import trace
 from flask import Flask
 from flask import request
 from flask_cors import CORS, cross_origin
 import os
 
-from lib.cognito_jwt_token_service import CognitoJwtToken
+from lib.cognito_jwt_token_service import CognitoJwtToken, TokenVerifyError
 
 from services.home_activities import *
 from services.notifications_activities import *
@@ -23,12 +34,6 @@ xray_url = os.getenv("AWS_XRAY_URL")
 xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
 
 # Honeycomb --------------
-from opentelemetry import trace
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 # Initialize tracing and an exporter that can send data to Honeycomb
 provider = TracerProvider()
@@ -39,13 +44,8 @@ tracer = trace.get_tracer(__name__)
 
 # CloudWatch Logs ------------
 
-from time import strftime
-from utils.logger import LOGGER
 
 # Rollbar -----------------
-import rollbar
-import rollbar.contrib.flask
-from flask import got_request_exception
 
 app = Flask(__name__)
 
@@ -60,70 +60,105 @@ frontend = os.getenv('FRONTEND_URL')
 backend = os.getenv('BACKEND_URL')
 origins = [frontend, backend]
 cors = CORS(
-  app, 
+  app,
   resources={r"/api/*": {"origins": origins}},
   expose_headers="location,link",
-  allow_headers=["content-type","if-modified-since", "traceparent", "Authorization"],
+  allow_headers=["content-type", "if-modified-since",
+                 "traceparent", "Authorization"],
   methods="OPTIONS,GET,HEAD,POST"
 )
 
+
 @app.route("/api/message_groups", methods=['GET'])
 def data_message_groups():
-  cognito_user_id = None;
-  auth_header = request.headers.get('Authorization');
-  if auth_header:
+  cognito_user_id = None
+  auth_header = request.headers.get('Authorization')
+
+  if (auth_header == None):
+    LOGGER.debug("token not provided")
+    return {}, 401
+  try:
     data = CognitoJwtToken.verify(auth_header)
     cognito_user_id = data['sub']
 
-  model = MessageGroups.run(cognito_user_id=cognito_user_id)
+    model = MessageGroups.run(cognito_user_id=cognito_user_id)
 
-  if model['errors'] is not None:
-    return model['errors'], 422
-  else:
-    return model['data'], 200
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
 
-@app.route("/api/messages/@<string:handle>", methods=['GET'])
-def data_messages(handle):
-  user_sender_handle = 'andrewbrown'
-  user_receiver_handle = request.args.get('user_reciever_handle')
+  except TokenVerifyError as e:
+    LOGGER.info("unverified")
+    return {}, 401
 
-  model = Messages.run(user_sender_handle=user_sender_handle, user_receiver_handle=user_receiver_handle)
-  if model['errors'] is not None:
-    return model['errors'], 422
-  else:
-    return model['data'], 200
-  return
 
-@app.route("/api/messages", methods=['POST','OPTIONS'])
+@app.route("/api/messages/@<string:message_group_uuid>", methods=['GET'])
+def data_messages(message_group_uuid):
+
+  cognito_user_id = None
+  auth_header = request.headers.get('Authorization')
+
+  if (auth_header == None):
+    LOGGER.debug("token not provided")
+    return {}, 401
+  try:
+    data = CognitoJwtToken.verify(auth_header)
+    cognito_user_id = data['sub']
+
+    model = MessageGroups.run(cognito_user_id=cognito_user_id)
+
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+
+  except TokenVerifyError as e:
+    LOGGER.info("unverified")
+    return {}, 401
+
+  model = Messages.run(cognito_user_id=cognito_user_id,
+                       message_group_uuid=message_group_uuid)
+
+@app.route("/api/messages", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def data_create_message():
   user_sender_handle = 'andrewbrown'
   user_receiver_handle = request.json['user_receiver_handle']
   message = request.json['message']
 
-  model = CreateMessage.run(message=message,user_sender_handle=user_sender_handle,user_receiver_handle=user_receiver_handle)
+  model = CreateMessage.run(
+    message=message, user_sender_handle=user_sender_handle, user_receiver_handle=user_receiver_handle)
   if model['errors'] is not None:
     return model['errors'], 422
   else:
     return model['data'], 200
   return
 
+
 @app.route("/api/activities/home", methods=['GET'])
 def data_home():
-  cognito_user_id = None;
-  auth_header = request.headers.get('Authorization');
-  
-  if auth_header:
+  cognito_user_id = None
+  auth_header = request.headers.get('Authorization')
+
+  if (auth_header == None):
+    LOGGER.debug("token not provided")
+    return {}, 401
+  try:
     data = CognitoJwtToken.verify(auth_header)
     cognito_user_id = data['username']
+    data = HomeActivities.run(cognito_user_id)
+    return data, 200
+  except TokenVerifyError as e:
+    LOGGER.info("unverified")
+    return {}, 401
 
-  data = HomeActivities.run(cognito_user_id)
-  return data, 200
 
 @app.route("/api/activities/notifications", methods=['GET'])
 def data_notifications():
   data = NotificationsActivities.run()
   return data, 200
+
 
 @app.route("/api/activities/@<string:handle>", methods=['GET'])
 def data_handle(handle):
@@ -132,6 +167,7 @@ def data_handle(handle):
     return model['errors'], 422
   else:
     return model['data'], 200
+
 
 @app.route("/api/activities/search", methods=['GET'])
 def data_search():
@@ -143,10 +179,11 @@ def data_search():
     return model['data'], 200
   return
 
-@app.route("/api/activities", methods=['POST','OPTIONS'])
+
+@app.route("/api/activities", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def data_activities():
-  user_handle  = 'philoxrud'
+  user_handle = 'philoxrud'
   message = request.json['message']
   ttl = request.json['ttl']
   model = CreateActivity.run(message, user_handle, ttl)
@@ -156,15 +193,17 @@ def data_activities():
     return model['data'], 200
   return
 
+
 @app.route("/api/activities/<string:activity_uuid>", methods=['GET'])
 def data_show_activity(activity_uuid):
   data = ShowActivity.run(activity_uuid=activity_uuid)
   return data, 200
 
-@app.route("/api/activities/<string:activity_uuid>/reply", methods=['POST','OPTIONS'])
+
+@app.route("/api/activities/<string:activity_uuid>/reply", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def data_activities_reply(activity_uuid):
-  user_handle  = 'andrewbrown'
+  user_handle = 'andrewbrown'
   message = request.json['message']
   model = CreateReply.run(message, user_handle, activity_uuid)
   if model['errors'] is not None:
@@ -173,7 +212,10 @@ def data_activities_reply(activity_uuid):
     return model['data'], 200
   return
 
+
 rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')
+
+
 @app.before_first_request
 def init_rollbar():
   """init rollbar module"""
@@ -191,17 +233,23 @@ def init_rollbar():
   got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 
 # CloudWatch Logs Logger ---------------
+
+
 @app.after_request
 def after_request(response):
-    timestamp = strftime('[%Y-%b-%d %H:%M]')
-    LOGGER.error('%s %s %s %s %s %s', timestamp, request.remote_addr, request.method, request.scheme, request.full_path, response.status)
-    return response
+  timestamp = strftime('[%Y-%b-%d %H:%M]')
+  LOGGER.error('%s %s %s %s %s %s', timestamp, request.remote_addr,
+               request.method, request.scheme, request.full_path, response.status)
+  return response
 
 # Rollbar test path ------------
+
+
 @app.route('/rollbar/test')
 def rollbar_test():
-    rollbar.report_message('Hello World!', 'warning')
-    return "Hello World!"
+  rollbar.report_message('Hello World!', 'warning')
+  return "Hello World!"
+
 
 if __name__ == "__main__":
   app.run(debug=True)
