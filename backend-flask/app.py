@@ -93,7 +93,7 @@ def data_message_groups():
     return {}, 401
 
 
-@app.route("/api/messages/@<string:message_group_uuid>", methods=['GET'])
+@app.route("/api/messages/<string:message_group_uuid>", methods=['GET'])
 def data_messages(message_group_uuid):
 
   cognito_user_id = None
@@ -106,7 +106,8 @@ def data_messages(message_group_uuid):
     data = CognitoJwtToken.verify(auth_header)
     cognito_user_id = data['sub']
 
-    model = MessageGroups.run(cognito_user_id=cognito_user_id)
+    model = Messages.run(cognito_user_id=cognito_user_id,
+                         message_group_uuid=message_group_uuid)
 
     if model['errors'] is not None:
       return model['errors'], 422
@@ -117,23 +118,58 @@ def data_messages(message_group_uuid):
     LOGGER.info("unverified")
     return {}, 401
 
-  model = Messages.run(cognito_user_id=cognito_user_id,
-                       message_group_uuid=message_group_uuid)
 
 @app.route("/api/messages", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def data_create_message():
-  user_sender_handle = 'andrewbrown'
-  user_receiver_handle = request.json['user_receiver_handle']
+  message_group_uuid = request.json.get('message_group_uuid', None)
+  user_receiver_handle = request.json.get('handle', None)
   message = request.json['message']
+  auth_header = request.headers.get('Authorization')
 
-  model = CreateMessage.run(
-    message=message, user_sender_handle=user_sender_handle, user_receiver_handle=user_receiver_handle)
-  if model['errors'] is not None:
-    return model['errors'], 422
-  else:
-    return model['data'], 200
-  return
+  if (auth_header == None):
+    LOGGER.debug("token not provided")
+    return {}, 401
+
+  try:
+    data = CognitoJwtToken.verify(auth_header)
+    # authenicatied request
+    app.logger.debug("authenicated")
+    app.logger.debug(data)
+
+    cognito_user_id = data['sub']
+
+    if message_group_uuid == None:
+      # Create for the first time
+      model = CreateMessage.run(
+        mode="create",
+        message=message,
+        cognito_user_id=cognito_user_id,
+        user_receiver_handle=user_receiver_handle
+      )
+    else:
+      # Push onto existing Message Group
+      LOGGER.debug("Message:")
+      LOGGER.debug(message)
+      LOGGER.debug("GROUP UUID:")
+      LOGGER.debug(message_group_uuid)
+      LOGGER.debug("COGNITO UUID:")
+      LOGGER.debug(cognito_user_id)
+      
+      model = CreateMessage.run(
+        mode="update",
+        message=message,
+        message_group_uuid=message_group_uuid,
+        cognito_user_id=cognito_user_id
+      )
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+  except TokenVerifyError as e:
+    # unauthenicatied request
+    app.logger.debug(e)
+    return {}, 401
 
 
 @app.route("/api/activities/home", methods=['GET'])
