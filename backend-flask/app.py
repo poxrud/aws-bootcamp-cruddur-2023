@@ -16,6 +16,7 @@ import os
 
 from lib.cognito_jwt_token_service import CognitoJwtToken, TokenVerifyError
 
+from services.users_short import *
 from services.home_activities import *
 from services.notifications_activities import *
 from services.user_activities import *
@@ -155,7 +156,7 @@ def data_create_message():
       LOGGER.debug(message_group_uuid)
       LOGGER.debug("COGNITO UUID:")
       LOGGER.debug(cognito_user_id)
-      
+
       model = CreateMessage.run(
         mode="update",
         message=message,
@@ -247,6 +248,12 @@ def data_activities_reply(activity_uuid):
   else:
     return model['data'], 200
   return
+
+
+@app.route("/api/users/@<string:handle>/short", methods=['GET'])
+def data_users_short(handle):
+  data = UsersShort.run(handle)
+  return data, 200
 
 
 rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')

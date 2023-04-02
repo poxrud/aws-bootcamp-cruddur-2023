@@ -13,6 +13,12 @@ VALUES
     'philoxrud+johnsmith@gmail.com',
     'johnsmith',
     'MOCK'
+  ),
+  (
+    'Lando Mollari',
+    'philoxrud+lando@gmail.com',
+    'landomollari',
+    'MOCK'
   );
 INSERT INTO
   public.activities (user_uuid, message, expires_at)
