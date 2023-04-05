@@ -58,11 +58,60 @@ except Exception as e:
   exit(1)  # false
 ```
 
-
 - Create CloudWatch Log Group
 
 ```sh
-aws logs create-log-group --log-group-name "/cruddur/cluster"
-aws logs put-retention-policy --log-group-name cruddur --retention-in-days 1
+aws logs create-log-group --log-group-name "/cruddur/fargate-cluster"
+aws logs put-retention-policy --log-group-name "/cruddur/fargate-cluster" --retention-in-days 1
 ```
+
+- Create ECS Cluster
+
+```sh
+aws ecs create-cluster \
+--cluster-name cruddur \
+--service-connect-defaults namespace=cruddur
+```
+
+- Create
+  ECR repo for the backend-flask Python image, so that we don't need to pull it from dockerhub
+
+```sh
+aws ecr create-repository \
+  --repository-name cruddur-python \
+  --image-tag-mutability MUTABLE
+```
+
+- Login to ECR
+
+```sh
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+```
+
+```sh
+export ECR_PYTHON_URL="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/cruddur-python"
+echo $ECR_PYTHON_URL
+```
+
+```sh
+docker pull python:3.10-slim-buster
+```
+
+- tag it so that it can be uploaded to ECR
+
+```sh
+docker tag python:3.10-slim-buster $ECR_PYTHON_URL:3.10-slim-buster
+```
+
+- Push it (upload) to ECR
+
+```sh
+docker push $ECR_PYTHON_URL:3.10-slim-buster
+```
+
+- edit Dockerfile with
+
+`FROM 632626636018.dkr.ecr.ca-central-1.amazonaws.com/cruddur-python:3.10-slim-buster`
+
+- health check is working
 
