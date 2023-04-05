@@ -115,3 +115,10 @@ docker push $ECR_PYTHON_URL:3.10-slim-buster
 
 - health check is working
 
+- create another ECR for Flask
+
+```sh
+aws ecr create-repository \
+  --repository-name backend-flask \
+  --image-tag-mutability MUTABLE
+```
