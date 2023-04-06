@@ -328,3 +328,61 @@ aws ecs execute-command  --region $AWS_DEFAULT_REGION --cluster cruddur --task a
 ```
 
 - modify the default SG to allow connections from ECS SG, this will fix RDS health check
+
+- create an ALB called cruddur-alb
+
+  - this will require creating a new SG and a new target group
+    -confirm ALB is working
+
+- Now same as above we need to create a service for the front end
+  This will be done with the file /aws/json/frontend-react-js.json
+
+- make a prod dockerfile for frontend-react-js
+- create nginex.conf file
+- build a new prod docker image with
+
+```sh
+docker build \
+--build-arg REACT_APP_BACKEND_URL="http://cruddur-alb-1554554041.ca-central-1.elb.amazonaws.com:4567" \
+--build-arg REACT_APP_AWS_PROJECT_REGION="$AWS_DEFAULT_REGION" \
+--build-arg REACT_APP_AWS_COGNITO_REGION="$AWS_DEFAULT_REGION" \
+--build-arg REACT_APP_AWS_USER_POOLS_ID="ca-central-1_PHdtNYjuS" \
+--build-arg REACT_APP_CLIENT_ID="1ams60e52fii48ogl892462cb" \
+-t frontend-react-js \
+-f Dockerfile.prod \
+.
+```
+
+- Create ECR repo for frontend-react-js
+
+```sh
+aws ecr create-repository \
+  --repository-name frontend-react-js \
+  --image-tag-mutability MUTABLE
+
+
+export ECR_FRONTEND_REACT_URL="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/frontend-react-js"
+echo $ECR_FRONTEND_REACT_URL
+```
+
+- login to ECR and tag front-end image
+
+```sh
+docker tag frontend-react-js:latest $ECR_FRONTEND_REACT_URL:latest
+```
+
+-push it to ECR
+
+```sh
+docker push $ECR_FRONTEND_REACT_URL:latest
+```
+
+- register task definition
+```sh
+aws ecs register-task-definition --cli-input-json file://aws/task-definitions/frontend-react-js.json
+```
+
+- create service
+```sh
+aws ecs create-service --cli-input-json file://aws/json/service-frontend-react-js.json
+```
