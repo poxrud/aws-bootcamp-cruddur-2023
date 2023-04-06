@@ -236,3 +236,95 @@ aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAc
 
 aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess --role-name CruddurTaskRole
 ```
+
+- create an ECS Task Definition. Create a file in /aws/task-definitions/backend-flask.json, with the values for my own account.
+- Register this task definition with ECS
+
+```sh
+aws ecs register-task-definition --cli-input-json file://aws/task-definitions/backend-flask.json
+```
+
+- We need to setup a security group
+
+  - get default VPC:
+
+  ```sh
+    export DEFAULT_VPC_ID=$(aws ec2 describe-vpcs \
+    --filters "Name=isDefault, Values=true" \
+    --query "Vpcs[0].VpcId" \
+    --output text)
+    echo $DEFAULT_VPC_ID
+  ```
+
+  - create the SG
+
+    ```sh
+      gitpod /workspace/aws-bootcamp-cruddur-2023 (week6) $ export CRUD_SERVICE_SG=$(aws ec2 create-security-group \
+      --group-name "crud-srv-sg" \
+      --description "Security group for Cruddur services on ECS" \
+      --vpc-id $DEFAULT_VPC_ID \
+      --query "GroupId" --output text)
+      echo $CRUD_SERVICE_SG
+      sg-0f7dd960458eed278
+
+      aws ec2 authorize-security-group-ingress \
+      --group-id $CRUD_SERVICE_SG \
+      --protocol tcp \
+      --port 4567 \
+      --cidr 0.0.0.0/0
+
+    ```
+
+- Fix ECS IAM Policy to give it access to ECR, by adding the below to
+  service-execution-policy.json
+
+```sh
+{
+  "Effect": "Allow",
+  "Action": ["ecr:GetAuthorizationToken"],
+  "Resource": "*"
+}
+```
+
+- Attach full cloudwatch permissions
+
+```sh
+aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess --role-name CruddurServiceExecutionRole
+```
+
+- install Session Manager for Linux on gitpod
+
+```sh
+curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
+sudo dpkg -i session-manager-plugin.deb
+
+gitpod /workspace/aws-bootcamp-cruddur-2023 (week6) $ session-manager-plugin
+
+The Session Manager plugin was installed successfully. Use the AWS CLI to start a session.
+```
+
+- Get our subnet id's
+
+```sh
+export DEFAULT_SUBNET_IDS=$(aws ec2 describe-subnets  \
+ --filters Name=vpc-id,Values=$DEFAULT_VPC_ID \
+ --query 'Subnets[*].SubnetId' \
+ --output json | jq -r 'join(",")')
+echo $DEFAULT_SUBNET_IDS
+
+```
+
+- Create a /aws/json/service-backend-flask.json, use the subnet ID's from above
+- run with
+
+```sh
+aws ecs create-service --cli-input-json file://aws/json/service-backend-flask.json
+```
+
+- we access the service task with
+
+```sh
+aws ecs execute-command  --region $AWS_DEFAULT_REGION --cluster cruddur --task arn:aws:ecs:ca-central-1:632626636018:task/cruddur/d6db1c03018847cea119684d59468c49 --container backend-flask --command "/bin/bash" --interactive
+```
+
+- modify the default SG to allow connections from ECS SG, this will fix RDS health check
