@@ -1,0 +1,33 @@
+{
+  "family": "sidecar-nodejs",
+  "executionRoleArn": "arn:aws:iam::632626636018:role/CruddurServiceExecutionRole",
+  "taskRoleArn": "arn:aws:iam::632626636018:role/CruddurTaskRole",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "requiresCompatibilities": ["FARGATE"],
+  "containerDefinitions": [
+    {
+      "name": "sidecar-nodejs",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs",
+      "essential": true,
+      "portMappings": [
+        {
+          "name": "sidecar-nodejs",
+          "containerPort": 3050,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "cruddur",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "sidecar-nodejs"
+        }
+      }
+    }
+  ]
+}
