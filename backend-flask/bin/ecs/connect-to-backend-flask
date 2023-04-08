@@ -9,11 +9,6 @@ fi
 
 TASK_ID=$1
 
-if [ -z "$2" ]; then
-  echo "No CONTAINER_NAME provided, eg. backend-flask"
-  exit 1;
-fi
-
-CONTAINER_NAME=$2
+CONTAINER_NAME="backend-flask"
 
 aws ecs execute-command  --region $AWS_DEFAULT_REGION --cluster cruddur --task "$TASK_ID" --container "$CONTAINER_NAME" --command "/bin/bash" --interactive
