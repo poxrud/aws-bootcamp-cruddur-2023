@@ -378,11 +378,81 @@ docker push $ECR_FRONTEND_REACT_URL:latest
 ```
 
 - register task definition
+
 ```sh
 aws ecs register-task-definition --cli-input-json file://aws/task-definitions/frontend-react-js.json
 ```
 
 - create service
+
 ```sh
 aws ecs create-service --cli-input-json file://aws/json/service-frontend-react-js.json
+```
+
+{% note %}
+
+**Note:** In week3, as part of "Additional Homework" I created a seperate NodeJS service, as a JWT verfying sidecar. Since we are now
+using ECS I need to convert this sidecar to an ECS service.
+
+{% endnote %}
+
+### Convert JWT verifyer sidecar
+
+- create a docker image
+
+```sh
+cd sidecar-nodejs
+docker build -t sidecar-nodejs .
+```
+
+- create ECR repo for the sidecar
+
+```sh
+aws ecr create-repository \
+  --repository-name sidecar-nodejs \
+  --image-tag-mutability MUTABLE
+
+export ECR_SIDECAR_URL="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/sidecar-nodejs"
+echo $ECR_SIDECAR_URL
+```
+
+- tag the docker image and push it to ECR
+
+```sh
+docker tag sidecar-nodejs:latest $ECR_SIDECAR_URL:latest
+
+docker push $ECR_SIDECAR_URL:latest
+```
+
+- create a task defintion file `/aws/task-definitions/sidecar-nodejs.json` with the correct settings and port
+
+- using AWS Console create a target group for the sidecar, called `cruddur-sidecar-jwt-verifier-tg`. Using the ALB create a port 3050 lisitener
+  to forward request to this TG
+
+- create a service defintion file `/aws/json/service-jwt-verify.json`
+
+- register task definition
+
+```sh
+aws ecs register-task-definition --cli-input-json file://aws/task-definitions/sidecar-nodejs.json
+```
+
+- create and start the service
+
+```sh
+aws ecs create-service --cli-input-json file://aws/json/service-jwt-verify.json
+```
+
+- add healthcheck to frontend-react-js task definition
+
+```json
+"healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:3000 || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      }
 ```
