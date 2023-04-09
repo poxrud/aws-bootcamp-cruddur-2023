@@ -11,6 +11,9 @@
       "name": "sidecar-nodejs",
       "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs",
       "essential": true,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      },
       "portMappings": [
         {
           "name": "sidecar-nodejs",
@@ -19,7 +22,6 @@
           "appProtocol": "http"
         }
       ],
-
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
@@ -27,7 +29,18 @@
           "awslogs-region": "ca-central-1",
           "awslogs-stream-prefix": "sidecar-nodejs"
         }
-      }
+      },
+      "environment": [
+        {
+          "name": "COGNITO_USER_POOL_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "COGNITO_WEB_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        },
+        { "name": "EXPOSEDPORT", "value": 3050 }
+      ]
     }
   ]
 }
