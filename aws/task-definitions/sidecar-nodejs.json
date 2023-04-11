@@ -12,7 +12,7 @@
       "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs",
       "essential": true,
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+        "command": ["CMD-SHELL", "curl -f http://localhost:3050/health-check || exit 1"]
       },
       "portMappings": [
         {
