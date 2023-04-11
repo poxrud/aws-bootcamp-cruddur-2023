@@ -33,7 +33,19 @@
           "awslogs-region": "ca-central-1",
           "awslogs-stream-prefix": "frontend-react-js"
         }
-      }
+      },
+      "environment": [
+        { "name": "REACT_AWS_PROJECT_REGION", "value": "ca-central-1" },
+        { "name": "REACT_APP_AWS_COGNITO_REGION", "value": "ca-central-1" },
+        {
+          "name": "REACT_APP_AWS_USER_POOLS_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "REACT_APP_WEB_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        }
+      ]
     }
   ]
 }
