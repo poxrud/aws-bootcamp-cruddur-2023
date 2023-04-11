@@ -8,6 +8,19 @@
   "requiresCompatibilities": ["FARGATE"],
   "containerDefinitions": [
     {
+      "name": "xray",
+      "image": "public.ecr.aws/xray/aws-xray-daemon",
+      "essential": true,
+      "user": "1337",
+      "portMappings": [
+        {
+          "name": "xray",
+          "containerPort": 2000,
+          "protocol": "udp"
+        }
+      ]
+    },
+    {
       "name": "backend-flask",
       "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/backend-flask",
       "essential": true,
@@ -51,8 +64,8 @@
           "name": "AWS_COGNITO_USER_POOL_CLIENT_ID",
           "value": "1ams60e52fii48ogl892462cb"
         },
-        { "name": "FRONTEND_URL", "value": "*" },
-        { "name": "BACKEND_URL", "value": "*" },
+        { "name": "FRONTEND_URL", "value": "https://mycruddur.net" },
+        { "name": "BACKEND_URL", "value": "https://api.mycruddur.net" },
         { "name": "AWS_DEFAULT_REGION", "value": "ca-central-1" }
       ],
       "secrets": [
