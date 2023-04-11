@@ -21,6 +21,44 @@
       ]
     },
     {
+      "name": "verify-cognito-token",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs",
+      "essential": true,
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:3050/health-check || exit 1"
+        ]
+      },
+      "portMappings": [
+        {
+          "name": "verify-cognito-token",
+          "containerPort": 3050,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "cruddur",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "sidecar-nodejs"
+        }
+      },
+      "environment": [
+        {
+          "name": "COGNITO_USER_POOL_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "COGNITO_WEB_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        },
+        { "name": "EXPOSEDPORT", "value": "3050" }
+      ]
+    },
+    {
       "name": "backend-flask",
       "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/backend-flask",
       "essential": true,
