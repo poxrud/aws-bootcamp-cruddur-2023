@@ -1,4 +1,4 @@
-
+import os
 import requests
 from utils.logger import LOGGER
 
@@ -10,8 +10,8 @@ class TokenVerifyError(Exception):
 class CognitoJwtToken:
   def verify(auth_header):
     try:
-
-      response = requests.get('http://verify-cognito-token:3050/verify-cognito-token',
+      jwt_verifier_path = os.getenv('JWT_VERIFIER_SIDECAR_URL')
+      response = requests.get(f'{jwt_verifier_path}/verify-cognito-token',
                               headers={'Authorization': f'{auth_header}'})
 
       if response.status_code == 401:

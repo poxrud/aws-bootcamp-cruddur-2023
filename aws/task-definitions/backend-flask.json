@@ -104,7 +104,11 @@
         },
         { "name": "FRONTEND_URL", "value": "https://mycruddur.net" },
         { "name": "BACKEND_URL", "value": "https://api.mycruddur.net" },
-        { "name": "AWS_DEFAULT_REGION", "value": "ca-central-1" }
+        { "name": "AWS_DEFAULT_REGION", "value": "ca-central-1" },
+        {
+          "name": "JWT_VERIFIER_SIDECAR_URL",
+          "value": "http://localhost:3050"
+        }
       ],
       "secrets": [
         {
