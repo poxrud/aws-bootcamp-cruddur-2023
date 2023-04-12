@@ -180,15 +180,18 @@ def data_home():
 
   if (auth_header == None):
     LOGGER.debug("token not provided")
-    return {}, 401
+    data = HomeActivities.run()
+    return data, 200
+
   try:
     data = CognitoJwtToken.verify(auth_header)
     cognito_user_id = data['username']
     data = HomeActivities.run(cognito_user_id)
-    return data, 200
   except TokenVerifyError as e:
-    LOGGER.info("unverified")
-    return {}, 401
+    LOGGER.info("unauthenticated")
+    data = HomeActivities.run()
+
+  return data, 200
 
 
 @app.route("/api/activities/notifications", methods=['GET'])
