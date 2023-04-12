@@ -457,3 +457,12 @@ aws ecs create-service --cli-input-json file://aws/json/service-jwt-verify.json
         "retries": 3
       }
 ```
+
+
+## Secure Flask
+- create a new Dockercompose.prod with `"--no-debug","--no-debugger","--no-reload"` flags passed to the run command
+- build new prod docker image
+
+```sh
+docker build -t backend-flask -f Dockerfile.prod .
+```
