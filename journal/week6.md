@@ -135,10 +135,11 @@ export ECR_BACKEND_FLASK_URL="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazon
 docker build -t backend-flask .
 ```
 
-- tag it for upload (push)
+- tag it and upload (push)
 
 ```sh
 docker tag backend-flask:latest $ECR_BACKEND_FLASK_URL:latest
+docker push $ECR_BACKEND_FLASK_URL:latest
 ```
 
 - create a `service-execution-policy.json` file inside aws/policities
