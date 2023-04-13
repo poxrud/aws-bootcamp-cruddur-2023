@@ -3,7 +3,7 @@
   "executionRoleArn": "arn:aws:iam::632626636018:role/CruddurServiceExecutionRole",
   "taskRoleArn": "arn:aws:iam::632626636018:role/CruddurTaskRole",
   "networkMode": "awsvpc",
-  "cpu": "256",
+  "cpu": "512",
   "memory": "512",
   "requiresCompatibilities": ["FARGATE"],
   "containerDefinitions": [
