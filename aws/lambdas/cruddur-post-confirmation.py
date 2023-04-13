@@ -27,7 +27,7 @@ def lambda_handler(event, context):
       user_cognito_id
     ]
 
-    cur.execute(sql, *params)
+    cur.execute(sql, params)
     conn.commit()
 
   except (Exception, psycopg2.DatabaseError) as error:
