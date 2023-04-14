@@ -330,6 +330,10 @@ aws ecs create-service --cli-input-json file://aws/json/service-backend-flask.js
 ![backend-flask-running-on-ecr](/assets/backend-flask-running-on-ecr.png)
 ![backend-flask-running-on-ecr2](/assets/backend-flask-running-on-ecr2.png)
 
+Here is the health check:
+
+![backend-api-check-on-public-ELB.png](/assets/backend-api-check-on-public-ELB.png)
+
 - for troubleshooting we can access the service task with
 
 ```sh
@@ -360,7 +364,7 @@ docker build \
 .
 ``` -->
 
-- Create ECR repo for frontend-react-js
+## Create ECR repo and push image for fronted-react-js
 
 ```sh
 aws ecr create-repository \
