@@ -458,11 +458,47 @@ aws ecs create-service --cli-input-json file://aws/json/service-jwt-verify.json
       }
 ```
 
-
 ## Secure Flask
+
 - create a new Dockercompose.prod with `"--no-debug","--no-debugger","--no-reload"` flags passed to the run command
 - build new prod docker image
 
 ```sh
 docker build -t backend-flask -f Dockerfile.prod .
 ```
+
+## Fix Cognito Refresh Tokens
+
+Cognito by itself will automatically store the access token in local storage. It is unnecessary to store it again.
+Here is a simpler getAccessToken function.
+
+In `frontend-react/src/lib/checkAuth` add new function
+
+```js
+const getAccessToken = async () => {
+  try {
+    const session = await Auth.currentSession();
+    return session.getAccessToken().getJwtToken();
+  } catch (err) {
+    console.log(err);
+  }
+};
+```
+
+Then whenever you need the access token you can just get it from Cognito:
+
+```js
+const access_token = await getAccessToken();
+const res = await fetch(backend_url, {
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+  },
+  method: "GET",
+});
+```
+
+Update all components and pages that require authorized API calls to use the above way of getting the `access_token`.
+
+# Generate env variables using Ruby
+
+# Fix Flask health-check
