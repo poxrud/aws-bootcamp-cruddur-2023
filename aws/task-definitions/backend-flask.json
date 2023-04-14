@@ -63,10 +63,7 @@
       "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/backend-flask",
       "essential": true,
       "healthCheck": {
-        "command": [
-          "CMD-SHELL",
-          "python /backend-flask/bin/flask/health-check"
-        ],
+        "command": ["CMD-SHELL", "python /backend-flask/bin/health-check"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
