@@ -1,32 +1,23 @@
 # Week 6 — Deploying Containers
 
-backend-flask/bin/db/test
+## Provision ECS Cluster
 
-```py
-#!/usr/bin/env python3
+I created an ECS cluster called cruddur
 
-import psycopg
-import os
-import sys
-
-connection_url = os.getenv("CONNECTION_URL")
-
-conn = None
-try:
-  print('attempting connection')
-  conn = psycopg.connect(connection_url)
-  print("Connection successful!")
-except psycopg.Error as e:
-  print("Unable to connect to the database:", e)
-finally:
-  conn.close()
+```sh
+aws ecs create-cluster \
+--cluster-name cruddur \
+--service-connect-defaults namespace=cruddur
 ```
 
-This is for health check inside docker
+![create-cruddur-cluster-cli](/assets/create-cruddur-cluster-cli.png)
 
-- make it executable with `chmod u+x`
+We need to create two health checks for `backend-flask` service.
 
-- Need healthcheck for Flask app. Inside app.py
+1. One healthcheck will be an API endopoint, for the ELB
+2. The second health check will be a script inside the docker container to be used by ECS
+
+Inside app.py
 
 ```py
 @app.route('/api/health-check')
@@ -34,8 +25,13 @@ def health_check():
   return {'success': True}, 200
 ```
 
-This needs a flask healthcheck endpoint:
-backend-flask/bin/flask/health-check
+![flask-api-healthcheck](/assets/flask-api-healthcheck.png)
+
+This will provide a health check for the ELB.
+
+The second health check is for the docker image to be run in ECS.
+
+In `backend-flask/bin/flask/health-check`
 
 ```py
 #!/usr/bin/env python3
@@ -50,42 +46,27 @@ try:
   else:
     print("[BAD] Flask server is not running")
     exit(1)  # false
-# This for some reason is not capturing the error....
-# except ConnectionRefusedError as e:
-# so we'll just catch on all even though this is a bad practice
 except Exception as e:
   print(e)
   exit(1)  # false
 ```
 
-- Create CloudWatch Log Group
+make it executable with `chmod u+x`
+
+## Create ECR repo and push image for backend-flask
+
+First we need to login to ECR in order to be able to push and pull images.
 
 ```sh
-aws logs create-log-group --log-group-name "/cruddur/fargate-cluster"
-aws logs put-retention-policy --log-group-name "/cruddur/fargate-cluster" --retention-in-days 1
+aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
 ```
 
-- Create ECS Cluster
-
-```sh
-aws ecs create-cluster \
---cluster-name cruddur \
---service-connect-defaults namespace=cruddur
-```
-
-- Create
-  ECR repo for the backend-flask Python image, so that we don't need to pull it from dockerhub
+Create an ECR repo for the backend-flask's Python image, so that we don't need to pull it from dockerhub. This is more reliable.
 
 ```sh
 aws ecr create-repository \
   --repository-name cruddur-python \
   --image-tag-mutability MUTABLE
-```
-
-- Login to ECR
-
-```sh
-aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
 ```
 
 ```sh
@@ -103,19 +84,22 @@ docker pull python:3.10-slim-buster
 docker tag python:3.10-slim-buster $ECR_PYTHON_URL:3.10-slim-buster
 ```
 
+Here it is locally
+![cruddur-python-image](/assets/cruddur-python-image.png)
+
 - Push it (upload) to ECR
 
 ```sh
 docker push $ECR_PYTHON_URL:3.10-slim-buster
 ```
 
-- edit Dockerfile with
+![flask-prod-image](/assets/flask-prod-image.png)
+
+- edit Dockerfile to use the image from ECR
 
 `FROM 632626636018.dkr.ecr.ca-central-1.amazonaws.com/cruddur-python:3.10-slim-buster`
 
-- health check is working
-
-- create another ECR for Flask
+We then create another image for the `backend-flask` service.
 
 ```sh
 aws ecr create-repository \
@@ -142,8 +126,13 @@ docker tag backend-flask:latest $ECR_BACKEND_FLASK_URL:latest
 docker push $ECR_BACKEND_FLASK_URL:latest
 ```
 
-- create a `service-execution-policy.json` file inside aws/policities
-  with the content below:
+Here are the images on ECR:
+
+![backend-images-on-ecr](/assets/backend-images-on-ecr.png)
+
+## Deploy Backend Flask app as a service to Fargate
+
+create a `service-execution-policy.json` file inside aws/policies with the content below:
 
 ```json
 {
@@ -158,7 +147,11 @@ docker push $ECR_BACKEND_FLASK_URL:latest
 }
 ```
 
-- Create a 'service-assume-role-execution-policy.json". This is the trust policy for our role.
+![cruddur-parameter-store-acceess-policy](/assets/cruddur-parameter-store-acceess-policy.png)
+
+This will allow us to store secrets in SSM Parameter store.
+
+Create a 'service-assume-role-execution-policy.json". This is the trust policy for our role.
 
 ```json
 {
@@ -184,6 +177,8 @@ aws ssm put-parameter --type "SecureString" --name "/cruddur/backend-flask/CONNE
 aws ssm put-parameter --type "SecureString" --name "/cruddur/backend-flask/ROLLBAR_ACCESS_TOKEN" --value $ROLLBAR_ACCESS_TOKEN
 aws ssm put-parameter --type "SecureString" --name "/cruddur/backend-flask/OTEL_EXPORTER_OTLP_HEADERS" --value "x-honeycomb-team=$HONEYCOMB_API_KEY"
 ```
+
+![cruddur-service-parameter-store](/assets/cruddur-service-parameter-store.png)
 
 - Create a Task execution role with an ec2 assumerole trust policy
 
@@ -238,43 +233,53 @@ aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAc
 aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess --role-name CruddurTaskRole
 ```
 
-- create an ECS Task Definition. Create a file in /aws/task-definitions/backend-flask.json, with the values for my own account.
+![Permission-policy-for-instance-tasks](/assets/Permission-policy-for-instance-tasks.png)
+
+- We need to create CloudWatch Log Group to be used by our Task Definition in our cluster.
+
+```sh
+aws logs create-log-group --log-group-name "/cruddur/fargate-cluster"
+aws logs put-retention-policy --log-group-name "/cruddur/fargate-cluster" --retention-in-days 1
+```
+
+![cruddur-cluster-log-group](/assets/cruddur-cluster-log-group.png)
+
+- create an ECS Task Definition. Create a file in /aws/task-definitions/backend-flask.json, with the values for my own account, and the log group above.
 - Register this task definition with ECS
 
 ```sh
 aws ecs register-task-definition --cli-input-json file://aws/task-definitions/backend-flask.json
 ```
 
-- We need to setup a security group
+We need to setup a security group
 
-  - get default VPC:
+- get default VPC:
+
+```sh
+export DEFAULT_VPC_ID=$(aws ec2 describe-vpcs \
+--filters "Name=isDefault, Values=true" \
+--query "Vpcs[0].VpcId" \
+--output text)
+echo $DEFAULT_VPC_ID
+```
+
+- create the SG
 
   ```sh
-    export DEFAULT_VPC_ID=$(aws ec2 describe-vpcs \
-    --filters "Name=isDefault, Values=true" \
-    --query "Vpcs[0].VpcId" \
-    --output text)
-    echo $DEFAULT_VPC_ID
+  gitpod /workspace/aws-bootcamp-cruddur-2023 (week6) $ export CRUD_SERVICE_SG=$(aws ec2 create-security-group \
+  --group-name "crud-srv-sg" \
+  --description "Security group for Cruddur services on ECS" \
+  --vpc-id $DEFAULT_VPC_ID \
+  --query "GroupId" --output text)
+  echo $CRUD_SERVICE_SG
+  sg-0f7dd960458eed278
+
+  aws ec2 authorize-security-group-ingress \
+  --group-id $CRUD_SERVICE_SG \
+  --protocol tcp \
+  --port 4567 \
+  --cidr 0.0.0.0/0
   ```
-
-  - create the SG
-
-    ```sh
-      gitpod /workspace/aws-bootcamp-cruddur-2023 (week6) $ export CRUD_SERVICE_SG=$(aws ec2 create-security-group \
-      --group-name "crud-srv-sg" \
-      --description "Security group for Cruddur services on ECS" \
-      --vpc-id $DEFAULT_VPC_ID \
-      --query "GroupId" --output text)
-      echo $CRUD_SERVICE_SG
-      sg-0f7dd960458eed278
-
-      aws ec2 authorize-security-group-ingress \
-      --group-id $CRUD_SERVICE_SG \
-      --protocol tcp \
-      --port 4567 \
-      --cidr 0.0.0.0/0
-
-    ```
 
 - Fix ECS IAM Policy to give it access to ECR, by adding the below to
   service-execution-policy.json
@@ -293,7 +298,7 @@ aws ecs register-task-definition --cli-input-json file://aws/task-definitions/ba
 aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess --role-name CruddurServiceExecutionRole
 ```
 
-- install Session Manager for Linux on gitpod
+- install Session Manager for Linux on gitpod. This will allow us to login to ECR containers in case of troubleshooting
 
 ```sh
 curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"
@@ -322,15 +327,16 @@ echo $DEFAULT_SUBNET_IDS
 aws ecs create-service --cli-input-json file://aws/json/service-backend-flask.json
 ```
 
-- we access the service task with
+![backend-flask-running-on-ecr](/assets/backend-flask-running-on-ecr.png)
+![backend-flask-running-on-ecr2](/assets/backend-flask-running-on-ecr2.png)
+
+- for troubleshooting we can access the service task with
 
 ```sh
 aws ecs execute-command  --region $AWS_DEFAULT_REGION --cluster cruddur --task arn:aws:ecs:ca-central-1:632626636018:task/cruddur/d6db1c03018847cea119684d59468c49 --container backend-flask --command "/bin/bash" --interactive
 ```
 
-- modify the default SG to allow connections from ECS SG, this will fix RDS health check
-
-- create an ALB called cruddur-alb
+<!-- - create an ALB called cruddur-alb
 
   - this will require creating a new SG and a new target group
     -confirm ALB is working
@@ -352,7 +358,7 @@ docker build \
 -t frontend-react-js \
 -f Dockerfile.prod \
 .
-```
+``` -->
 
 - Create ECR repo for frontend-react-js
 
