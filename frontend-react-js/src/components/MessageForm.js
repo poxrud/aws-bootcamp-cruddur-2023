@@ -26,10 +26,11 @@ export default function ActivityForm(props) {
         json.message_group_uuid = params.message_group_uuid;
       }
 
+      const access_token = await getAccessToken();
       const res = await fetch(backend_url, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          Authorization: `Bearer ${access_token}`,
           Accept: "application/json",
           "Content-Type": "application/json",
         },
