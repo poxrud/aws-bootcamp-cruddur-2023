@@ -340,30 +340,6 @@ Here is the health check:
 aws ecs execute-command  --region $AWS_DEFAULT_REGION --cluster cruddur --task arn:aws:ecs:ca-central-1:632626636018:task/cruddur/d6db1c03018847cea119684d59468c49 --container backend-flask --command "/bin/bash" --interactive
 ```
 
-<!-- - create an ALB called cruddur-alb
-
-  - this will require creating a new SG and a new target group
-    -confirm ALB is working
-
-- Now same as above we need to create a service for the front end
-  This will be done with the file /aws/json/frontend-react-js.json
-
-- make a prod dockerfile for frontend-react-js
-- create nginex.conf file
-- build a new prod docker image with
-
-```sh
-docker build \
---build-arg REACT_APP_BACKEND_URL="http://cruddur-alb-1554554041.ca-central-1.elb.amazonaws.com:4567" \
---build-arg REACT_APP_AWS_PROJECT_REGION="$AWS_DEFAULT_REGION" \
---build-arg REACT_APP_AWS_COGNITO_REGION="$AWS_DEFAULT_REGION" \
---build-arg REACT_APP_AWS_USER_POOLS_ID="ca-central-1_PHdtNYjuS" \
---build-arg REACT_APP_WEB_CLIENT_ID="1ams60e52fii48ogl892462cb" \
--t frontend-react-js \
--f Dockerfile.prod \
-.
-``` -->
-
 ## Create ECR repo and push image for fronted-react-js
 
 ```sh
@@ -376,7 +352,11 @@ export ECR_FRONTEND_REACT_URL="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazo
 echo $ECR_FRONTEND_REACT_URL
 ```
 
-- login to ECR and tag front-end image
+- make a prod dockerfile for frontend-react-js
+- create nginex.conf file inside frontend-react-js
+- build a new prod docker image with
+
+- login to ECR and tag the frontend-react-js image
 
 ```sh
 docker tag frontend-react-js:latest $ECR_FRONTEND_REACT_URL:latest
@@ -388,7 +368,68 @@ docker tag frontend-react-js:latest $ECR_FRONTEND_REACT_URL:latest
 docker push $ECR_FRONTEND_REACT_URL:latest
 ```
 
-- register task definition
+Here it is on ECR:
+![images-on-ecr](/assets/images-on-ecr.png)
+
+## Deploy Frontend React JS app as a service to Fargate
+
+- create a task definition inside task-definitions/frontend-react-js.json
+
+```json
+{
+  "family": "frontend-react-js",
+  "executionRoleArn": "arn:aws:iam::632626636018:role/CruddurServiceExecutionRole",
+  "taskRoleArn": "arn:aws:iam::632626636018:role/CruddurTaskRole",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "requiresCompatibilities": ["FARGATE"],
+  "containerDefinitions": [
+    {
+      "name": "frontend-react-js",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/frontend-react-js",
+      "essential": true,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      },
+      "portMappings": [
+        {
+          "name": "frontend-react-js",
+          "containerPort": 3000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/cruddur/fargate-cluster",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "frontend-react-js"
+        }
+      },
+      "environment": [
+        { "name": "REACT_AWS_PROJECT_REGION", "value": "ca-central-1" },
+        { "name": "REACT_APP_AWS_COGNITO_REGION", "value": "ca-central-1" },
+        {
+          "name": "REACT_APP_AWS_USER_POOLS_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "REACT_APP_WEB_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        }
+      ]
+    }
+  ]
+}
+```
+
+- register task definition for frontend-react-js
 
 ```sh
 aws ecs register-task-definition --cli-input-json file://aws/task-definitions/frontend-react-js.json
@@ -431,44 +472,90 @@ echo $ECR_SIDECAR_URL
 
 ```sh
 docker tag sidecar-nodejs:latest $ECR_SIDECAR_URL:latest
-
 docker push $ECR_SIDECAR_URL:latest
 ```
 
-- create a task defintion file `/aws/task-definitions/sidecar-nodejs.json` with the correct settings and port
-
-- using AWS Console create a target group for the sidecar, called `cruddur-sidecar-jwt-verifier-tg`. Using the ALB create a port 3050 lisitener
-  to forward request to this TG
-
-- create a service defintion file `/aws/json/service-jwt-verify.json`
-
-- register task definition
-
-```sh
-aws ecs register-task-definition --cli-input-json file://aws/task-definitions/sidecar-nodejs.json
-```
-
-- create and start the service
-
-```sh
-aws ecs create-service --cli-input-json file://aws/json/service-jwt-verify.json
-```
-
-- add healthcheck to frontend-react-js task definition
+- Edit `aws/json/service-backend-flask.json` and add the sidecar image to the list of containers to run as part of the
+  backend-flask task. A task can have many containers running.
 
 ```json
-"healthCheck": {
+...
+      "name": "verify-cognito-token",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs",
+      "essential": true,
+      "healthCheck": {
         "command": [
           "CMD-SHELL",
-          "curl -f http://localhost:3000 || exit 1"
-        ],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3
-      }
+          "curl -f http://localhost:3050/health-check || exit 1"
+        ]
+      },
+...
 ```
 
-## Secure Flask
+Also add the env variables required for the sidecar to run.
+
+## Provision and configure Application Load Balancer along with target groups
+
+- use and AWS Console to create an ALB called cruddur-alb
+
+![cruddur-alb.png](/assets/cruddur-alb.png)
+
+- this will require creating a new SG and a new target group
+
+![cruddur-alb-sg.png](/assets/cruddur-alb-sg.png)
+
+- create a new `backend-flask` production image that points to the ELB
+
+```sh
+docker build \
+--build-arg REACT_APP_BACKEND_URL="http://cruddur-alb-1554554041.ca-central-1.elb.amazonaws.com:4567" \
+--build-arg REACT_APP_AWS_PROJECT_REGION="$AWS_DEFAULT_REGION" \
+--build-arg REACT_APP_AWS_COGNITO_REGION="$AWS_DEFAULT_REGION" \
+--build-arg REACT_APP_AWS_USER_POOLS_ID="ca-central-1_PHdtNYjuS" \
+--build-arg REACT_APP_WEB_CLIENT_ID="1ams60e52fii48ogl892462cb" \
+-t frontend-react-js \
+-f Dockerfile.prod \
+.
+```
+
+- push the image. Confirm that the ALB works.
+
+![backend-api-check-on-public-ELB.png](/assets/backend-api-check-on-public-ELB.png)
+
+## Manage your domain useing Route53 via hosted zone
+
+Using R53 I registered my domain name _mycruddur.net_
+![mycruddur-r53-domain](/assets/mycruddur-r53-domain.png)
+
+## Create an SSL cerificate via ACM
+
+Here it is:
+![mycruddur-ssl-cert](/assets/mycruddur-ssl-cert.png)
+
+## Setup a record set for naked domain to point to frontend-react-js
+
+Using R53 I created an Alias record to point the naked domain _mycruddur.net_ to the load balancer that was configured above.
+
+![mycruddur-r53-alias](/assets/mycruddur-r53-alias.png)
+
+## Setup a record set for api subdomain to point to the backend-flask
+
+I created an alias in R53 to point `api.mycruddur.net` to the load balancer greated above. You can see the record in the screenshot immidiatly above this section.
+
+## Configure CORS to only permit traffic from our domain
+
+Using the _cruddur-alb_ ALB that we setup before we can configure rules to do the following:
+
+- forward port 80 traffic to port 443. This will make sure we're always using https
+- Forward all api.mycruddur.net calls to the backend-flask service target group
+- Forward all mycruddur.net calls to the frontend-react-js service target group
+- Deny everything else, this makes sure that we only permit traffic from our domain
+
+The rules above work by checking the `Host `header.
+
+![mycruddur-alb-rules](/assets/mycruddur-alb-rules.png)
+
+## Secure Flask by not running in debug mode
 
 - create a new Dockercompose.prod with `"--no-debug","--no-debugger","--no-reload"` flags passed to the run command
 - build new prod docker image
@@ -477,7 +564,9 @@ aws ecs create-service --cli-input-json file://aws/json/service-jwt-verify.json
 docker build -t backend-flask -f Dockerfile.prod .
 ```
 
-## Fix Cognito Refresh Tokens
+Push the new image to ECR, force a new backend-flask deploy.
+
+## Implement Refresh Token for Amazon Cognito
 
 Cognito by itself will automatically store the access token in local storage. It is unnecessary to store it again.
 Here is a simpler getAccessToken function.
@@ -509,6 +598,96 @@ const res = await fetch(backend_url, {
 
 Update all components and pages that require authorized API calls to use the above way of getting the `access_token`.
 
+# Refactor bin directory to be top level
+
+The bin files inside `backend-flask/bin` have been moved to `/bin` inside the root project folder. To accomplish this relative paths inside the scripts needed to be updated.
+
+To get the absolute path of where every script is being ran from, the following command was used:
+
+```sh
+ABS_PATH=$(readlink -f "$0")
+```
+
+This combined with `dirname` allowed the scripts to be ran from any location.
+Here is an example of using this strategy in one of the scripts, to get locations for the different project and service paths:
+
+```sh
+ABS_PATH=$(readlink -f "$0")
+BACKEND_PATH=$(dirname $ABS_PATH)
+BIN_PATH=$(dirname $BACKEND_PATH)
+PROJECT_PATH=$(dirname $BIN_PATH)
+BACKEND_FLASK_PATH="$PROJECT_PATH/backend-flask"
+```
+
+## Configure task defintions to contain x-ray and turn on Container Insights
+
+Using the AWS console, I navigated to the ECS Cluster, and clicked on _Update Cluster" and enabled \_Container Insights_.
+![mycruddur-container-insights](/assets/mycruddur-container-insights.png)
+
+Inside `aws/task-definitions/backend-flask.json` and `aws/task-definitions/frontend-react-js.json`:
+
+- add a section "containerDefinitions : []", and inside the square brackets add:
+
+```json
+{
+  "name": "xray",
+  "image": "public.ecr.aws/xray/aws-xray-daemon",
+  "essential": true,
+  "user": "1337",
+  "portMappings": [
+    {
+      "name": "xray",
+      "containerPort": 2000,
+      "protocol": "udp"
+    }
+  ]
+},
+```
+
+## Change Docker Compose to explicitly use a user-defined network
+
+Edit the bottom of `docker-compose.yml` to have have a `networks:` section.
+The section will name the network that services within docker-compose will share. This will allow docker containers outside of the docker-compose file to communicated with containers inside the file.
+
+```yml
+networks:
+  cruddur-net:
+    driver: bridge
+    name: cruddur-net
+```
+
+## Using ruby generate out env dot files for docker using erb templates
+
 # Generate env variables using Ruby
 
-# Fix Flask health-check
+Docker-compose.yml can be setup to use env files for its envrionmental variables instead of passing them directly in the `Environment` section. Since we have a frontend-react-js and a backend-flask services we need to generate two env files to be used by docker-compose.yml
+
+A ruby script in /bin/backend/generate is used to generate the env file for the backend-flask env file called `/backend-flask.env`
+
+```ruby
+#!/usr/bin/env ruby
+
+require 'erb'
+
+template = File.read 'erb/backend-flask.env.erb'
+content = ERB.new(template).result(binding)
+filename = "backend-flask.env"
+File.write(filename, content)
+```
+
+A ruby script in /bin/frontend/generate is used to generate the env file for the frontend-react-js env file called `/frontend-react-js.env`
+
+```ruby
+#!/usr/bin/env ruby
+
+require 'erb'
+
+template = File.read 'erb/frontend-react-js.env.erb'
+content = ERB.new(template).result(binding)
+filename = "frontend-react-js.env"
+File.write(filename, content)
+```
+
+The ruby script uses `ERB` templates in `/erb/` to generate the env files.
+
+NOTE: it is important to add `*.env` to the end of the `.gitignore` file so that we do not accidently commit secrets to github.
