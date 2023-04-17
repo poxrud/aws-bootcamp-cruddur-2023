@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-from lib.db import db
 import sys
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import boto3
 import uuid
 
@@ -12,6 +11,7 @@ parent_path = os.path.abspath(os.path.join(
   current_path, '..', '..', 'backend-flask'))
 sys.path.append(parent_path)
 
+from lib.db import db
 
 attrs = {
   'endpoint_url': 'http://localhost:8000'
@@ -95,7 +95,7 @@ def create_message(client, message_group_uuid, created_at, message, my_user_uuid
 
 
 message_group_uuid = "5ae290ed-55d1-47a0-bc6d-fe2bc2700399"
-now = datetime.now(timezone.utc).astimezone()
+now = datetime.now()
 users = get_user_uuids()
 
 create_message_group(
@@ -240,7 +240,7 @@ for i in range(len(lines)):
     print(lines[i])
     raise 'invalid line'
 
-  created_at = (now + timedelta(seconds=i)).isoformat()
+  created_at = (now - timedelta(days=1) + timedelta(minutes=i)).isoformat()
   create_message(
     client=ddb,
     message_group_uuid=message_group_uuid,

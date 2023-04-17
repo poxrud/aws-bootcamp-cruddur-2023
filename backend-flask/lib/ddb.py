@@ -5,17 +5,18 @@ import uuid
 import os
 import botocore.exceptions
 
+
 class Ddb:
   def client():
     endpoint_url = os.getenv("AWS_ENDPOINT_URL")
     if endpoint_url:
-      attrs = { 'endpoint_url': endpoint_url }
+      attrs = {'endpoint_url': endpoint_url}
     else:
       attrs = {}
-    dynamodb = boto3.client('dynamodb',**attrs)
+    dynamodb = boto3.client('dynamodb', **attrs)
     return dynamodb
-  
-  def list_message_groups(client,my_user_uuid):
+
+  def list_message_groups(client, my_user_uuid):
     year = str(datetime.now().year)
     table_name = 'cruddur-messages'
     query_params = {
@@ -24,7 +25,7 @@ class Ddb:
       'ScanIndexForward': False,
       'Limit': 20,
       'ExpressionAttributeValues': {
-        ':year': {'S': year },
+        ':year': {'S': year},
         ':pk': {'S': f"GRP#{my_user_uuid}"}
       }
     }
@@ -33,7 +34,7 @@ class Ddb:
     # query the table
     response = client.query(**query_params)
     items = response['Items']
-    
+
     results = []
     for item in items:
       last_sent_at = item['sk']['S']
@@ -45,7 +46,7 @@ class Ddb:
         'created_at': last_sent_at
       })
     return results
-  
+
   def list_messages(client, message_group_uuid):
     year = str(datetime.now().year)
     table_name = 'cruddur-messages'
@@ -55,7 +56,7 @@ class Ddb:
       'ScanIndexForward': False,
       'Limit': 20,
       'ExpressionAttributeValues': {
-        ':year': {'S': year },
+        ':year': {'S': year},
         ':pk': {'S': f"MSG#{message_group_uuid}"}
       }
     }
@@ -74,15 +75,14 @@ class Ddb:
         'created_at': created_at
       })
     return results
-  
-  def create_message(client,message_group_uuid, message, my_user_uuid, my_user_display_name, my_user_handle):
-    now = datetime.now(timezone.utc).astimezone().isoformat()
-    created_at = now
+
+  def create_message(client, message_group_uuid, message, my_user_uuid, my_user_display_name, my_user_handle):
+    created_at = datetime.now().isoformat()
     message_uuid = str(uuid.uuid4())
 
     record = {
-      'pk':   {'S': f"MSG#{message_group_uuid}"},
-      'sk':   {'S': created_at },
+      'pk': {'S': f"MSG#{message_group_uuid}"},
+      'sk': {'S': created_at},
       'message': {'S': message},
       'message_uuid': {'S': message_uuid},
       'user_uuid': {'S': my_user_uuid},
@@ -101,12 +101,12 @@ class Ddb:
       'message_group_uuid': message_group_uuid,
       'uuid': my_user_uuid,
       'display_name': my_user_display_name,
-      'handle':  my_user_handle,
+      'handle': my_user_handle,
       'message': message,
       'created_at': created_at
     }
-  
-  def create_message_group(client, message,my_user_uuid, my_user_display_name, my_user_handle, other_user_uuid, other_user_display_name, other_user_handle):
+
+  def create_message_group(client, message, my_user_uuid, my_user_display_name, my_user_handle, other_user_uuid, other_user_display_name, other_user_handle):
     print('== create_message_group.1')
     table_name = 'cruddur-messages'
 
@@ -124,7 +124,7 @@ class Ddb:
       'message': {'S': message},
       'user_uuid': {'S': other_user_uuid},
       'user_display_name': {'S': other_user_display_name},
-      'user_handle':  {'S': other_user_handle}
+      'user_handle': {'S': other_user_handle}
     }
 
     print('== create_message_group.3')
@@ -135,13 +135,13 @@ class Ddb:
       'message': {'S': message},
       'user_uuid': {'S': my_user_uuid},
       'user_display_name': {'S': my_user_display_name},
-      'user_handle':  {'S': my_user_handle}
+      'user_handle': {'S': my_user_handle}
     }
 
     print('== create_message_group.4')
     message = {
-      'pk':   {'S': f"MSG#{message_group_uuid}"},
-      'sk':   {'S': created_at },
+      'pk': {'S': f"MSG#{message_group_uuid}"},
+      'sk': {'S': created_at},
       'message': {'S': message},
       'message_uuid': {'S': message_uuid},
       'user_uuid': {'S': my_user_uuid},
