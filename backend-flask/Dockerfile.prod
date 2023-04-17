@@ -1,5 +1,10 @@
 FROM 632626636018.dkr.ecr.ca-central-1.amazonaws.com/cruddur-python:3.10-slim-buster
 
+# [TODO] For debugging, don't leave these in
+#RUN apt-get update -y
+#RUN apt-get install iputils-ping -y
+# -----
+
 # Inside Container
 # make a new folder inside container
 WORKDIR /backend-flask
@@ -22,4 +27,4 @@ EXPOSE ${PORT}
 
 # CMD (Command)
 # python3 -m flask run --host=0.0.0.0 --port=4567
-CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0", "--port=4567", "--debug"]
+CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0", "--port=4567", "--no-debug","--no-debugger","--no-reload"]

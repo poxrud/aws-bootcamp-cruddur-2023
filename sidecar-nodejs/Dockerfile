@@ -2,6 +2,8 @@ FROM node:16-slim
 
 ENV PORT=3050
 
+RUN apt-get update && apt-get install -y curl
+
 WORKDIR /app
 COPY package*.json ./
 

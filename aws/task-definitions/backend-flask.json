@@ -1,0 +1,134 @@
+{
+  "family": "backend-flask",
+  "executionRoleArn": "arn:aws:iam::632626636018:role/CruddurServiceExecutionRole",
+  "taskRoleArn": "arn:aws:iam::632626636018:role/CruddurTaskRole",
+  "networkMode": "awsvpc",
+  "cpu": "512",
+  "memory": "512",
+  "requiresCompatibilities": ["FARGATE"],
+  "containerDefinitions": [
+    {
+      "name": "xray",
+      "image": "public.ecr.aws/xray/aws-xray-daemon",
+      "essential": true,
+      "user": "1337",
+      "portMappings": [
+        {
+          "name": "xray",
+          "containerPort": 2000,
+          "protocol": "udp"
+        }
+      ]
+    },
+    {
+      "name": "verify-cognito-token",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs",
+      "essential": true,
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:3050/health-check || exit 1"
+        ]
+      },
+      "portMappings": [
+        {
+          "name": "verify-cognito-token",
+          "containerPort": 3050,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "cruddur",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "sidecar-nodejs"
+        }
+      },
+      "environment": [
+        {
+          "name": "COGNITO_USER_POOL_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "COGNITO_WEB_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        },
+        { "name": "EXPOSEDPORT", "value": "3050" }
+      ]
+    },
+    {
+      "name": "backend-flask",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/backend-flask",
+      "essential": true,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "python /backend-flask/bin/health-check"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "portMappings": [
+        {
+          "name": "backend-flask",
+          "containerPort": 4567,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/cruddur/fargate-cluster",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "backend-flask"
+        }
+      },
+      "environment": [
+        { "name": "OTEL_SERVICE_NAME", "value": "backend-flask" },
+        {
+          "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+          "value": "https://api.honeycomb.io"
+        },
+        {
+          "name": "AWS_COGNITO_USER_POOL_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "AWS_COGNITO_USER_POOL_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        },
+        { "name": "FRONTEND_URL", "value": "https://mycruddur.net" },
+        { "name": "BACKEND_URL", "value": "https://api.mycruddur.net" },
+        { "name": "AWS_DEFAULT_REGION", "value": "ca-central-1" },
+        {
+          "name": "JWT_VERIFIER_SIDECAR_URL",
+          "value": "http://localhost:3050"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "valueFrom": "arn:aws:ssm:ca-central-1:632626636018:parameter/cruddur/backend-flask/AWS_ACCESS_KEY_ID"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "valueFrom": "arn:aws:ssm:ca-central-1:632626636018:parameter/cruddur/backend-flask/AWS_SECRET_ACCESS_KEY"
+        },
+        {
+          "name": "CONNECTION_URL",
+          "valueFrom": "arn:aws:ssm:ca-central-1:632626636018:parameter/cruddur/backend-flask/CONNECTION_URL"
+        },
+        {
+          "name": "ROLLBAR_ACCESS_TOKEN",
+          "valueFrom": "arn:aws:ssm:ca-central-1:632626636018:parameter/cruddur/backend-flask/ROLLBAR_ACCESS_TOKEN"
+        },
+        {
+          "name": "OTEL_EXPORTER_OTLP_HEADERS",
+          "valueFrom": "arn:aws:ssm:ca-central-1:632626636018:parameter/cruddur/backend-flask/OTEL_EXPORTER_OTLP_HEADERS"
+        }
+      ]
+    }
+  ]
+}

@@ -180,15 +180,18 @@ def data_home():
 
   if (auth_header == None):
     LOGGER.debug("token not provided")
-    return {}, 401
+    data = HomeActivities.run()
+    return data, 200
+
   try:
     data = CognitoJwtToken.verify(auth_header)
     cognito_user_id = data['username']
     data = HomeActivities.run(cognito_user_id)
-    return data, 200
   except TokenVerifyError as e:
-    LOGGER.info("unverified")
-    return {}, 401
+    LOGGER.info("unauthenticated")
+    data = HomeActivities.run()
+
+  return data, 200
 
 
 @app.route("/api/activities/notifications", methods=['GET'])
@@ -285,13 +288,17 @@ def after_request(response):
                request.method, request.scheme, request.full_path, response.status)
   return response
 
+
+@app.route('/api/health-check')
+def health_check():
+  return {'success': True}, 200
+
+
 # Rollbar test path ------------
-
-
-@app.route('/rollbar/test')
-def rollbar_test():
-  rollbar.report_message('Hello World!', 'warning')
-  return "Hello World!"
+# @app.route('/rollbar/test')
+# def rollbar_test():
+#   rollbar.report_message('Hello World!', 'warning')
+#   return "Hello World!"
 
 
 if __name__ == "__main__":

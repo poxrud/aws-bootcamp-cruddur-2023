@@ -1,2 +1,7 @@
 package-lock.json
 docker/**/*
+
+frontend-react-js/build/*
+
+*.env
+

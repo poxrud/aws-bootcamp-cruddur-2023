@@ -1,0 +1,51 @@
+{
+  "family": "frontend-react-js",
+  "executionRoleArn": "arn:aws:iam::632626636018:role/CruddurServiceExecutionRole",
+  "taskRoleArn": "arn:aws:iam::632626636018:role/CruddurTaskRole",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "requiresCompatibilities": ["FARGATE"],
+  "containerDefinitions": [
+    {
+      "name": "frontend-react-js",
+      "image": "632626636018.dkr.ecr.ca-central-1.amazonaws.com/frontend-react-js",
+      "essential": true,
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      },
+      "portMappings": [
+        {
+          "name": "frontend-react-js",
+          "containerPort": 3000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/cruddur/fargate-cluster",
+          "awslogs-region": "ca-central-1",
+          "awslogs-stream-prefix": "frontend-react-js"
+        }
+      },
+      "environment": [
+        { "name": "REACT_AWS_PROJECT_REGION", "value": "ca-central-1" },
+        { "name": "REACT_APP_AWS_COGNITO_REGION", "value": "ca-central-1" },
+        {
+          "name": "REACT_APP_AWS_USER_POOLS_ID",
+          "value": "ca-central-1_PHdtNYjuS"
+        },
+        {
+          "name": "REACT_APP_WEB_CLIENT_ID",
+          "value": "1ams60e52fii48ogl892462cb"
+        }
+      ]
+    }
+  ]
+}
