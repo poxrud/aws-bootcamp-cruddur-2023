@@ -3,6 +3,8 @@ import React from "react";
 import process from "process";
 import { json, useParams } from "react-router-dom";
 
+import { getAccessToken } from "../lib/CheckAuth";
+
 export default function ActivityForm(props) {
   const [count, setCount] = React.useState(0);
   const [message, setMessage] = React.useState("");
