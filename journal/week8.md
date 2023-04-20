@@ -33,8 +33,8 @@ CDKToolkit: creating CloudFormation changeset...
  ```yml
 THUMBING_BUCKET_NAME="assets.mycruddur.net"
 THUMBING_FUNCTION_PATH="/workspace/aws-bootcamp-cruddur-2023/aws/lambdas/process-images/"
-THUMBING_S3_FOLDER_INPUT="avatar/original"
-THUMBING_S3_FOLDER_OUTPUT="avatar/processed"
+THUMBING_S3_FOLDER_INPUT="avatars/original"
+THUMBING_S3_FOLDER_OUTPUT="avatars/processed"
 THUMBING_WEBHOOK_URL="api.mycruddur.net/webhooks/avatar"
 THUMBING_TOPIC_NAME="cruddur-assets"
 ```
@@ -75,3 +75,43 @@ this.createS3NotifyToLambda(folderInput, lambda, bucket)
 ```
 
 Then add the function `createS3NotifyToLambda` to the class.
+
+Then try it out with `cdk synth` and if all is good deploy with `cdk deploy`.
+
+```typescript
+ importBucket(bucketName: string): s3.IBucket {
+    const bucket = s3.Bucket.fromBucketName(this, "AssetsBucket", bucketName);
+    return bucket;
+  }
+```
+ 
+ - Manually create s3 bucket `assets.mycruddur.net` w
+ 
+ - Give our Lambda permissions to write to s3
+
+ ```ts
+   createPolicyBucketAccess(bucketArn: string){
+    const s3ReadWritePolicy = new iam.PolicyStatement({
+      actions: [
+        's3:GetObject',
+        's3:PutObject',
+      ],
+      resources: [
+        `${bucketArn}/*`,
+      ]
+    });
+    return s3ReadWritePolicy;
+  }
+```
+
+- attach the policy to our lambda
+
+```ts
+lambda.addToRolePolicy(s3ReadWritePolicy);
+```
+
+- manually upload a large photo and check that a processed version was correctly placed in `avatars/processed`
+
+- create SNS Topic, SNS Subscription, for webhook, on processed images
+by modifying `thumbing-serverless.cdk-stack.ts`
+
