@@ -115,3 +115,29 @@ lambda.addToRolePolicy(s3ReadWritePolicy);
 - create SNS Topic, SNS Subscription, for webhook, on processed images
 by modifying `thumbing-serverless.cdk-stack.ts`
 
+## Serve Avatars via CloudFront
+
+- setup CloudFront distribution
+- Point it to S3 bucket
+- Give bucket permission policy to allow CloudFront to access it
+- Point R53 assets.mycruddur.net to point to the CloudFront distribution
+
+- Change architecture to use a different bucket for uploads, and another for processed images
+
+```yml
+UPLOADS_BUCKET_NAME="mycruddur-uploaded-avatars"
+ASSETS_BUCKET_NAME="assets.mycruddur.net"
+ASSETS_FUNCTION_PATH="/workspace/aws-bootcamp-cruddur-2023/aws/lambdas/process-images/"
+THUMBING_S3_FOLDER_INPUT="avatars/original"
+THUMBING_S3_FOLDER_OUTPUT="avatars/processed"
+THUMBING_WEBHOOK_URL="https://api.mycruddur.net/webhooks/avatar"
+THUMBING_TOPIC_NAME="cruddur-assets"
+```
+
+
+- getting Task Time out error
+
+```
+Task timed out after 3.08 seconds
+```
+Need to increase Lambda's timeout to 10 seconds.
