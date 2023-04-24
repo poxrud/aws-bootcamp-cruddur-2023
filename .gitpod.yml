@@ -10,7 +10,7 @@ tasks:
     before: |
       cd /workspace
       curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      unzip awscliv2.zip
+      unzip -o awscliv2.zip
       sudo ./aws/install
       cd $THEIA_WORKSPACE_ROOT
   - name: react-js
@@ -42,3 +42,7 @@ tasks:
       cd thumbing-serverless-cdk
       npm i
       cp .env.example .env
+  - name: Thumbing-Lambda
+    before: |
+      cd "$THEIA_WORKSPACE_ROOT"/aws/lambdas/process-images
+      npm i
