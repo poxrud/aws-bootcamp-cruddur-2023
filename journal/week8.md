@@ -141,3 +141,6 @@ THUMBING_TOPIC_NAME="cruddur-assets"
 Task timed out after 3.08 seconds
 ```
 Need to increase Lambda's timeout to 10 seconds.
+
+## Implement Users Profile Page
+

@@ -1,4 +1,4 @@
-import "./UserFeedPage.css";
+ import "./UserFeedPage.css";
 import React from "react";
 import { useParams } from "react-router-dom";
 
@@ -11,6 +11,7 @@ import { checkAuth, getAccessToken } from "../lib/CheckAuth";
 
 export default function UserFeedPage() {
   const [activities, setActivities] = React.useState([]);
+  const [profile, setProfile] = React.useState([]);
   const [popped, setPopped] = React.useState([]);
   const [user, setUser] = React.useState(null);
   const dataFetchedRef = React.useRef(false);
@@ -30,7 +31,8 @@ export default function UserFeedPage() {
       });
       let resJson = await res.json();
       if (res.status === 200) {
-        setActivities(resJson);
+        setProfile(resJson.profile);
+        setActivities(resJson.activites);
       } else {
         console.log(res);
       }
