@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 
 // Authenication
 import { Auth } from "aws-amplify";
-import { getAccessToken } from "../lib/CheckAuth";
 
 export default function SigninPage() {
   const [email, setEmail] = React.useState("");
@@ -16,11 +15,11 @@ export default function SigninPage() {
     setErrors("");
     event.preventDefault();
     try {
-      const user = await Auth.signIn(email, password);
+      await Auth.signIn(email, password);
       window.location.href = "/";
     } catch (error) {
       console.log("Error!", error.name);
-      if (error.code == "UserNotConfirmedException") {
+      if (error.code === "UserNotConfirmedException") {
         window.location.href = "/confirm";
       }
       setErrors(error.message);

@@ -1,7 +1,8 @@
+import './NotificationsFeedPage.css';
 import React from "react";
 
-import DesktopNavigation  from '../components/DesktopNavigation';
-import DesktopSidebar     from '../components/DesktopSidebar';
+import DesktopNavigation from '../components/DesktopNavigation';
+import DesktopSidebar from '../components/DesktopSidebar';
 import ActivityFeed from '../components/ActivityFeed';
 import ActivityForm from '../components/ActivityForm';
 import ReplyForm from '../components/ReplyForm';
@@ -45,7 +46,7 @@ export default function NotificationsFeedPage() {
     }
   };
 
-  React.useEffect(()=>{
+  React.useEffect(() => {
     //prevents double call
     if (dataFetchedRef.current) return;
     dataFetchedRef.current = true;
@@ -56,26 +57,30 @@ export default function NotificationsFeedPage() {
 
   return (
     <article>
-      <DesktopNavigation user={user} active={'home'} setPopped={setPopped} />
+      <DesktopNavigation user={user} active={'notifications'} setPopped={setPopped} />
       <div className='content'>
-        <ActivityForm  
+        <ActivityForm
           popped={popped}
-          setPopped={setPopped} 
-          setActivities={setActivities} 
+          setPopped={setPopped}
+          setActivities={setActivities}
         />
-        <ReplyForm 
-          activity={replyActivity} 
-          popped={poppedReply} 
-          setPopped={setPoppedReply} 
-          setActivities={setActivities} 
-          activities={activities} 
+        <ReplyForm
+          activity={replyActivity}
+          popped={poppedReply}
+          setPopped={setPoppedReply}
+          setActivities={setActivities}
+          activities={activities}
         />
-        <ActivityFeed 
-          title="Home" 
-          setReplyActivity={setReplyActivity} 
-          setPopped={setPoppedReply} 
-          activities={activities} 
-        />
+        <div className='activity_feed'>
+          <div className='activity_feed_heading'>
+            <div className='title'>Notifications</div>
+          </div>
+          <ActivityFeed
+            setReplyActivity={setReplyActivity}
+            setPopped={setPoppedReply}
+            activities={activities}
+          />
+        </div>
       </div>
       <DesktopSidebar user={user} />
     </article>
