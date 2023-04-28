@@ -1,4 +1,4 @@
-import './EditProfileButton.css';
+ import './EditProfileButton.css';
 
 export default function EditProfileButton(props) {
   const pop_profile_form = (event) => {

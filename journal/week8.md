@@ -144,3 +144,62 @@ Need to increase Lambda's timeout to 10 seconds.
 
 ## Implement Users Profile Page
 
+
+```py
+#app.py
+
+@app.route("/api/profile/update", methods=['POST','OPTIONS'])
+@cross_origin()
+def data_update_profile():
+
+  auth_header = request.headers.get('Authorization')
+
+  if (auth_header == None):
+    LOGGER.debug("auth token not provided")
+    return {}, 401
+
+  bio          = request.json.get('bio',None)
+  display_name = request.json.get('display_name',None)
+  
+  try:
+    claims = CognitoJwtToken.verify(auth_header)
+    cognito_user_id = claims['sub']
+    model = UpdateProfile.run(
+      cognito_user_id=cognito_user_id,
+      bio=bio,
+      display_name=display_name
+    )
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+  except TokenVerifyError as e:
+    # unauthenicatied request
+    LOGGER.debug(e)
+    return {}, 401
+```
+
+
+- make backend-flask/db/sql/users/update.sql
+
+```sql
+UPDATE public.users 
+SET 
+  bio = %(bio)s,
+  display_name= %(display_name)s
+WHERE 
+  users.cognito_user_id = %(cognito_user_id)s
+RETURNING handle;
+```
+
+- add db migration generator in order to add a new "bio" field to our users table in the db
+
+```sql
+CREATE TABLE IF NOT EXISTS public.schema_information (
+  id integer UNIQUE,
+  last_successful_run text
+);
+INSERT INTO
+  public.schema_information (id, last_successful_run)
+VALUES(1, '0') ON CONFLICT (id) DO NOTHING;
+```
