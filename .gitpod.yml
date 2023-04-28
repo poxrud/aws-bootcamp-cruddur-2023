@@ -15,7 +15,6 @@ tasks:
       cd $THEIA_WORKSPACE_ROOT
   - name: react-js
     command: |
-      source  "$THEIA_WORKSPACE_ROOT/bin/frontend/generate-env"
       cd frontend-react-js
       npm i
   - name: postgres
@@ -29,7 +28,6 @@ tasks:
       source "$THEIA_WORKSPACE_ROOT"/bin/rds/update-sg-rule
   - name: backend-flask
     before: |
-      source  "$THEIA_WORKSPACE_ROOT/bin/backend/generate-env"
       cd "$THEIA_WORKSPACE_ROOT"/backend-flask/
       pip install -r requirements.txt
   - name: fargate
@@ -42,6 +40,11 @@ tasks:
       cd thumbing-serverless-cdk
       npm i
       cp .env.example .env
+  - name: docker
+    before: |
+      "$THEIA_WORKSPACE_ROOT/bin/frontend/generate-env"
+      "$THEIA_WORKSPACE_ROOT/bin/backend/generate-env"
+      "$THEIA_WORKSPACE_ROOT/bin/ecr/login"
   - name: Thumbing-Lambda
     before: |
       cd "$THEIA_WORKSPACE_ROOT"/aws/lambdas/process-images
