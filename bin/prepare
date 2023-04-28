@@ -10,9 +10,7 @@ ABS_PATH=$(readlink -f "$0")
 BIN_PATH=$(dirname $ABS_PATH)
 DB_PATH="$BIN_PATH/db"
 DDB_PATH="$BIN_PATH/ddb"
-echo "====$"
-echo $DB_PATH
-echo "====$"
+
 
 source "$DB_PATH/create"
 source "$DB_PATH/schema-load"
