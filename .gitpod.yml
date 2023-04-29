@@ -42,9 +42,9 @@ tasks:
       cp .env.example .env
   - name: docker
     before: |
-      "$THEIA_WORKSPACE_ROOT/bin/frontend/generate-env"
-      "$THEIA_WORKSPACE_ROOT/bin/backend/generate-env"
-      "$THEIA_WORKSPACE_ROOT/bin/ecr/login"
+      ruby "$THEIA_WORKSPACE_ROOT/bin/frontend/generate-env"
+      ruby "$THEIA_WORKSPACE_ROOT/bin/backend/generate-env"
+      bash "$THEIA_WORKSPACE_ROOT/bin/ecr/login"
   - name: Thumbing-Lambda
     before: |
       cd "$THEIA_WORKSPACE_ROOT"/aws/lambdas/process-images
