@@ -338,6 +338,30 @@ REACT_APP_API_GATEWAY_ENDPOINT_URL=<%= ENV['REACT_APP_API_GATEWAY_ENDPOINT_URL']
   gp env REACT_APP_API_GATEWAY_ENDPOINT_URL="https://hx6xrw3sta.execute-api.ca-central-1.amazonaws.com"
   ```
 
+- add the following IAM inline policy to the Lambda Authorizer
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "logs:CreateLogGroup",
+            "Resource": "arn:aws:logs:ca-central-1:632626636018:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": [
+                "arn:aws:logs:ca-central-1:632626636018:log-group:/aws/lambda/CruddurApiGatewayLambdaAuthorizer:*"
+            ]
+        }
+    ]
+}
+```
 
 
 - edit ProfileForm.js
@@ -345,6 +369,70 @@ REACT_APP_API_GATEWAY_ENDPOINT_URL=<%= ENV['REACT_APP_API_GATEWAY_ENDPOINT_URL']
 - install ruby Gemfiles dependencies, zip it up and upload to AWS Lambda
 
 ```sh
-bundle config set --local path 'vendor/bundle' \ 
+rbenv install 2.7.7
+rbenv local 2.7.7
+bundle config set --local path 'vendor/bundle'
 bundle install
+zip 
 ```
+
+- configure S3 CORS settings
+
+```json
+[
+    {
+        "AllowedHeaders": [
+            "*"
+        ],
+        "AllowedMethods": [
+            "PUT"
+        ],
+        "AllowedOrigins": [
+            "*"
+        ],
+        "ExposeHeaders": []
+    }
+]
+```
+
+- add IAM permissions to the CruddurUploadAvatar Lambda ruby function:
+
+```yml
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::mycruddur-uploaded-avatars/*"
+        }
+    ]
+}
+```
+
+- serve the uploaded image from cloudfront
+
+```js
+// ProfileAvatar.js
+
+export default function ProfileAvatar(props) {
+  import './ProfileAvatar.css';
+
+export default function ProfileAvatar(props) {
+  const backgroundImage = `url("https://assets.mycruddur.net/avatars/${props.id}.jpg")`;
+  const styles = {
+    backgroundImage: backgroundImage,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
+
+  return (
+    <div
+      className="profile-avatar"
+      style={styles}
+    ></div>
+  );
+}
+```
+

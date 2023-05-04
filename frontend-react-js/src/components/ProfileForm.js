@@ -25,7 +25,6 @@ export default function ProfileForm(props) {
         method: "POST",
         body: JSON.stringify(json),
         headers: {
-          'Origin': process.env.REACT_APP_FRONTEND_URL,
           'Authorization': `Bearer ${access_token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -52,8 +51,7 @@ export default function ProfileForm(props) {
     const fileparts = filename.split('.')
     const extension = fileparts[fileparts.length - 1]
     const presignedurl = await s3uploadkey(extension)
-    console.log("PRESIGNED_URL:", presignedurl);
-    return;
+    // return;
     try {
       console.log('s3upload')
       const res = await fetch(presignedurl, {
