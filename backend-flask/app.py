@@ -280,7 +280,7 @@ def data_update_profile():
       cognito_user_id=cognito_user_id,
       bio=bio,
       display_name=display_name
-    ) 
+    )
     if model['errors'] is not None:
       return model['errors'], 422
     else:
@@ -293,8 +293,9 @@ def data_update_profile():
 
 rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')
 
+# @app.before_first_request
 
-@app.before_first_request
+
 def init_rollbar():
   """init rollbar module"""
   rollbar.init(
@@ -310,7 +311,8 @@ def init_rollbar():
   # send exceptions from `app` to rollbar, using flask's signal system.
   got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
 
-# CloudWatch Logs Logger ---------------
+
+init_rollbar()
 
 
 @app.after_request
