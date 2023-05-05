@@ -1,5 +1,7 @@
 # Week 8 — Serverless Image Processing
 
+## Implement CDK Stack
+
 - npm install aws-cdk -g
 
 - in .gitpod.yml
@@ -10,9 +12,9 @@
       npm install aws-cdk -g
 ```
 
-- `cdk synth`
+- Use `cdk synth` to check cdk file before deploying it
 
-- bootstrap
+- Run the cdk bootstrap command to configure our account for CDK
 
 ```sh
 gitpod /workspace/aws-bootcamp-cruddur-2023/thumbing-serverless-cdk (main) $ cdk bootstrap "aws://632626636018/ca-central-1"
@@ -24,9 +26,9 @@ CDKToolkit: creating CloudFormation changeset...
  ✅  Environment aws://632626636018/ca-central-1 bootstrapped.
  ```
 
- - `cdk deploy`
+ - Use `cdk deploy` to deploy the CDK stack to AWS
 
- - .env.example
+ - Create `.env.example` to create env variables for CDK
 
  `cp .env.example .env` inside .gitpod.yml. This is because .env is ignored with our gitignore
 
@@ -84,8 +86,21 @@ Then try it out with `cdk synth` and if all is good deploy with `cdk deploy`.
     return bucket;
   }
 ```
+
+Here is the stack running:
+
+![CDK Stack](/assets/cdk-stack.png)
+
+## Serve Avatars via CloudFront
+
+- setup CloudFront distribution
+- Point it to S3 bucket
+- Give bucket permission policy to allow CloudFront to access it
+- Point R53 assets.mycruddur.net to point to the CloudFront distribution
  
- - Manually create s3 bucket `assets.mycruddur.net` w
+ - Manually create s3 bucket `assets.mycruddur.net`
+
+ ![assets-bucket](/assets/assets-bucket.png)
  
  - Give our Lambda permissions to write to s3
 
@@ -112,15 +127,11 @@ lambda.addToRolePolicy(s3ReadWritePolicy);
 
 - manually upload a large photo and check that a processed version was correctly placed in `avatars/processed`
 
+![processed-bucket](/assets/processed-bucket.png)
+
 - create SNS Topic, SNS Subscription, for webhook, on processed images
 by modifying `thumbing-serverless.cdk-stack.ts`
 
-## Serve Avatars via CloudFront
-
-- setup CloudFront distribution
-- Point it to S3 bucket
-- Give bucket permission policy to allow CloudFront to access it
-- Point R53 assets.mycruddur.net to point to the CloudFront distribution
 
 - Change architecture to use a different bucket for uploads, and another for processed images
 
@@ -134,16 +145,20 @@ THUMBING_WEBHOOK_URL="https://api.mycruddur.net/webhooks/avatar"
 THUMBING_TOPIC_NAME="cruddur-assets"
 ```
 
+Here is the upload bucket firing event:
 
-- getting Task Time out error
+![upload-bucket-event](/assets/upload-bucket-event.png)
 
-```
-Task timed out after 3.08 seconds
-```
-Need to increase Lambda's timeout to 10 seconds.
+R53 entry for assets.mycruddur.net
 
-## Implement Users Profile Page
+![r53-dns-record-for-assets-on-cloudfront](/assets/r53-dns-record-for-assets-on-cloudfront.png)
 
+Finally here is the image served from CloudFront
+
+![image-on-cloudfront](/assets/image-on-cloudfront.png)
+
+
+## Implement Users Profile Page and Form
 
 ```py
 #app.py
@@ -203,12 +218,23 @@ INSERT INTO
   public.schema_information (id, last_successful_run)
 VALUES(1, '0') ON CONFLICT (id) DO NOTHING;
 ```
-## Presigned URL generation via Ruby Lambda
 
 ```sh
 export UPLOADS_BUCKET_NAME="mycruddur-uploaded-avatars"
 gp env UPLOADS_BUCKET_NAME="mycruddur-uploaded-avatars"
 ```
+Here is the profile editing screen:
+![profile-update](/assets/profile-update.png)
+
+Here is the updated and saved new profile
+![profile-update](/assets/profile-update2.png)
+
+## Implement Backend Migrations
+
+- Implemented in `bin/db/migrate` and `bin/db/rollback`
+- Required the creation of a new table in the db called `schema_information`
+
+## 	HTTP API Gateway with Lambda Authorizer
  
 - add Lambda code to create presigned PUT url's for uploading
 
@@ -253,7 +279,7 @@ npm i aws-jwt-verify
 - zip up the lambda-authorizer folder
 
 ```sh
-gitpod /workspace/aws-bootcamp-cruddur-2023/aws/lambdas (main) $ zip -r lambda-authorizer.zi[ lambda-authorizer/
+gitpod /workspace/aws-bootcamp-cruddur-2023/aws/lambdas (main) $ zip -r lambda-authorizer.zip lambda-authorizer/
   adding: lambda-authorizer/ (stored 0%)
   adding: lambda-authorizer/index.js (deflated 44%)
   adding: lambda-authorizer/package.json (deflated 35%)
@@ -319,24 +345,9 @@ gitpod /workspace/aws-bootcamp-cruddur-2023/aws/lambdas (main) $ zip -r lambda-a
   adding: lambda-authorizer/package-lock.json (deflated 46%)
   ```
 
-- grab the API Gateway URL and update our .env frontend files with this.
-  - in /frontend-react-js/Dockerfile.prod add:
-  ```yml
-  ARG REACT_APP_API_GATEWAY_ENDPOINT_URL
-  ENV REACT_APP_API_GATEWAY_ENDPOINT_URL=$REACT_APP_API_GATEWAY_ENDPOINT_URL
-  ```
+- upload the zip file to the Lambda
 
-  also add this to the .erb file:
-
-  ```yml
-REACT_APP_API_GATEWAY_ENDPOINT_URL=<%= ENV['REACT_APP_API_GATEWAY_ENDPOINT_URL']%>  ```
-
-  inside gitpod cli
-
-  ```sh
-  $ export REACT_APP_API_GATEWAY_ENDPOINT_URL="https://hx6xrw3sta.execute-api.ca-central-1.amazonaws.com"
-  gp env REACT_APP_API_GATEWAY_ENDPOINT_URL="https://hx6xrw3sta.execute-api.ca-central-1.amazonaws.com"
-  ```
+![upload-lambda-authorizer](/assets/upload-lambda-authorizer.png)
 
 - add the following IAM inline policy to the Lambda Authorizer
 
@@ -363,8 +374,68 @@ REACT_APP_API_GATEWAY_ENDPOINT_URL=<%= ENV['REACT_APP_API_GATEWAY_ENDPOINT_URL']
 }
 ```
 
+- create an API Gateway with the POST `/avatars/key_upload` route. Assign the above Authorizer Lambda to this route.
 
-- edit ProfileForm.js
+![api-gateway-profile.png](/assets/api-gateway-profile.png)
+
+## Presigned URL generation via Ruby Lambda
+
+The API Gateway has a Lambda Authorizer, that will validate the passed in JWT and then return a success or failed
+validation.
+
+If the validation is successful the anther Lambda will run that will create a signed url, that will be used
+to upload a profile image directly to the s3 profile uploads bucket. The ruby Lambda will assume that the request is authorized
+and will create a signed URL for profile image uploads.
+
+-inside `lambdas/cruddur-upload-avatar/function.rb`
+
+```ruby
+require 'aws-sdk-s3'
+require 'json'
+require 'jwt'
+
+def handler(event:, context:)
+  puts "EVENT: #{event}"
+ 
+  token = event['headers']['authorization'].split(' ')[1]
+  puts({step: 'presignedurl', access_token: token}.to_json)
+
+  body_hash = JSON.parse(event["body"])
+  extension = body_hash["extension"]
+
+  decoded_token = JWT.decode token, nil, false
+  cognito_user_uuid = decoded_token[0]['sub']
+
+  s3 = Aws::S3::Resource.new
+  bucket_name = ENV["UPLOADS_BUCKET_NAME"]
+  object_key = "#{cognito_user_uuid}.#{extension}"
+
+  puts({object_key: object_key}.to_json)
+
+  obj = s3.bucket(bucket_name).object(object_key)
+  url = obj.presigned_url(:put, expires_in: 60 * 5)
+  
+  body = {url: url}.to_json
+  { 
+    headers: {
+      "Access-Control-Allow-Headers": "*, Authorization",
+      "Access-Control-Allow-Methods": "OPTIONS,PUT,POST"
+    },
+    statusCode: 200, 
+    body: body 
+  }
+end # def handler
+```
+
+also add a Gemfile with the following: 
+
+```rb
+source "https://rubygems.org"
+gem "aws-sdk-s3"
+gem "ox"
+gem "jwt"
+```
+
 
 - install ruby Gemfiles dependencies, zip it up and upload to AWS Lambda
 
@@ -373,10 +444,12 @@ rbenv install 2.7.7
 rbenv local 2.7.7
 bundle config set --local path 'vendor/bundle'
 bundle install
-zip 
+zip -r function.zip function.rb vendor
 ```
 
-- configure S3 CORS settings
+- configure API Gateway to use this Lambda
+
+- configure S3 CORS settings, so that uploads to the bucket would be possible
 
 ```json
 [
@@ -395,7 +468,8 @@ zip
 ]
 ```
 
-- add IAM permissions to the CruddurUploadAvatar Lambda ruby function:
+- add IAM permissions to the CruddurUploadAvatar Lambda ruby function. This is needed to be able to generate
+signed URL.
 
 ```yml
 {
@@ -410,6 +484,46 @@ zip
     ]
 }
 ```
+
+To fix Lambda CORS issue, setup API Gateway CORS settings as below:
+
+![cors-fix](/assets/cors-fix.png)
+
+## Create JWT Lambda Layer
+I have found that creating a Layer was not necessary. Instead it is possible to run `bundle install` and ask it to include
+all the packages (gems) in the local folder. This folder can then be zipped up and sent to AWS Lambda. 
+
+```sh
+rbenv install 2.7.7
+rbenv local 2.7.7
+bundle config set --local path 'vendor/bundle'
+bundle install
+zip -r function.zip function.rb vendor
+```
+
+## Render Avatars in App via Cloudfront
+
+- First we need to update the frontend to point to the API gateway. Grab the API Gateway URL and update our .env frontend files with this.
+  - in /frontend-react-js/Dockerfile.prod add:
+  ```yml
+  ARG REACT_APP_API_GATEWAY_ENDPOINT_URL
+  ENV REACT_APP_API_GATEWAY_ENDPOINT_URL=$REACT_APP_API_GATEWAY_ENDPOINT_URL
+  ```
+
+- also add this to the .erb file:
+
+```yml
+REACT_APP_API_GATEWAY_ENDPOINT_URL=<%= ENV['REACT_APP_API_GATEWAY_ENDPOINT_URL']%>  
+```
+
+- inside gitpod cli
+
+```sh
+$ export REACT_APP_API_GATEWAY_ENDPOINT_URL="https://hx6xrw3sta.execute-api.ca-central-1.amazonaws.com"
+gp env REACT_APP_API_GATEWAY_ENDPOINT_URL="https://hx6xrw3sta.execute-api.ca-central-1.amazonaws.com"
+```
+
+- edit `ProfileForm.js` to use the API Gateway endpoint to get a signed url for profile image upload
 
 - serve the uploaded image from cloudfront
 
@@ -436,3 +550,6 @@ export default function ProfileAvatar(props) {
 }
 ```
 
+Here is the final result, we can see the profile image after a profile update.
+
+![serve-profile-photo-from-cloudfront.png](/assets/serve-profile-photo-from-cloudfront.png)
