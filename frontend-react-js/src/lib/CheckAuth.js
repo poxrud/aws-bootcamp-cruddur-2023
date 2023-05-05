@@ -9,6 +9,7 @@ const checkAuth = async (setUser) => {
       setUser({
         display_name: cognito_user.attributes.name,
         handle: cognito_user.attributes.preferred_username,
+        cognito_user_uuid: cognito_user.attributes.sub
       });
     })
     .catch((err) => {
