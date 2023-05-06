@@ -1,0 +1,27 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": [
+              "ecr:CompleteLayerUpload",
+              "ecr:InitiateLayerUpload",
+              "ecr:PutImage",
+              "ecr:UploadLayerPart"
+          ],
+          "Resource": [
+              "arn:aws:ecr:ca-central-1:632626636018:repository/backend-flask"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchGetImage",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:BatchCheckLayerAvailability"
+          ],
+          "Resource": "*"
+      }
+  ]
+}
