@@ -18,12 +18,12 @@ phases:
       - cd $CODEBUILD_SRC_DIR
       - printf "[{\"name\":\"$CONTAINER_NAME\",\"imageUri\":\"$IMAGE_URL/$REPO_NAME\"}]" > imagedefinitions.json
 
-  deploy:
+  post_build:
     commands:
       - echo Build completed on `date`
       - echo Pushing the Docker image..
       - docker push $IMAGE_URL/$REPO_NAME
-      
+
 env:
   variables:
     AWS_ACCOUNT_ID: 632626636018

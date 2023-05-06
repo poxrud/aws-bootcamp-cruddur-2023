@@ -325,7 +325,7 @@ def after_request(response):
 
 @app.route('/api/health-check')
 def health_check():
-  return {'success': True}, 200
+  return {'success': True, 'version': 2}, 200
 
 
 # Rollbar test path ------------
