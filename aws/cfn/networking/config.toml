@@ -1,0 +1,4 @@
+[deploy]
+bucket = 'cfn-mycruddur-artifacts'
+region = 'ca-central-1'
+stack_name = 'CrdNet'

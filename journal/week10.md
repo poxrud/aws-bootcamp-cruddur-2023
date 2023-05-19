@@ -26,3 +26,12 @@ aws s3 mk s3://cfn-mycruddur-artifacts
 export CFN_BUCKET="cfn-mycruddur-artifacts"
 gp env CFN_BUCKET="cfn-mycruddur-artifacts"
 ```
+
+
+- install cfn-toml
+
+```sh
+gem install cfn-toml`
+```
+also add it to the _CFN_ section of our `.gitpod.yml` file.
+
