@@ -32,7 +32,7 @@ tasks:
       pip install -r requirements.txt
   - name: cfn
     before: |
-      pip install cfn-link
+      pip install cfn-lint
       cargo install cfn-guard
       gem install cfn-toml
   - name: fargate
