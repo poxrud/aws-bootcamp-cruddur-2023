@@ -1,5 +1,5 @@
 [deploy]
-bucket = 'cfn-artifacts'
+bucket = 'cfn-mycruddur-artifacts'
 region = 'ca-central-1'
 stack_name = 'CrdCluster'
 
