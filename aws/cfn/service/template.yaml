@@ -19,10 +19,10 @@ Parameters:
     Default: 4567
   ServiceCpu:
     Type: String
-    Default: "256"
+    Default: "512"
   ServiceMemory:
     Type: String
-    Default: "512"
+    Default: "1GB"
   ServiceName:
     Type: String
     Default: backend-flask
@@ -68,8 +68,16 @@ Parameters:
   SecretsOtelExporterOltpHeaders:
     Type: String
     Default: "arn:aws:ssm:ca-central-1:632626636018:parameter/cruddur/backend-flask/OTEL_EXPORTER_OTLP_HEADERS"
+  JwtVerifierSidecarUrl:
+    Type: String
+    Default: "http://localhost:3050"
 
 Resources:
+  ClusterNamespace:
+    Type: AWS::ServiceDiscovery::HttpNamespace
+    Properties:
+      Description: String
+      Name: cruddur-ns
   FargateService:
     Type: AWS::ECS::Service
     Properties:
@@ -100,7 +108,7 @@ Resources:
       PropagateTags: SERVICE
       ServiceConnectConfiguration:
         Enabled: true
-        Namespace: "cruddur"
+        Namespace: !GetAtt ClusterNamespace.Arn
         Services:
           - DiscoveryName: backend-flask
             PortName: backend-flask
@@ -129,6 +137,31 @@ Resources:
             - Name: "xray"
               ContainerPort: 2000
               Protocol: "udp"
+        - Name: "verify-cognito-token"
+          Image: "632626636018.dkr.ecr.ca-central-1.amazonaws.com/sidecar-nodejs"
+          Essential: true
+          HealthCheck:
+            Command:
+              - "CMD-SHELL"
+              - "curl -f http://localhost:3050/health-check || exit 1"
+          PortMappings:
+            - Name: "verify-cognito-token"
+              ContainerPort: 3050
+              Protocol: "tcp"
+              AppProtocol: "http"
+          LogConfiguration:
+            LogDriver: "awslogs"
+            Options:
+              awslogs-group: "cruddur"
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: "sidecar-nodejs"
+          Environment:
+            - Name: COGNITO_USER_POOL_ID
+              Value: !Ref EnvAWSCognitoUserPoolId
+            - Name: COGNITO_WEB_CLIENT_ID
+              Value: !Ref EnvCognitoUserPoolClientId
+            - Name: EXPOSEDPORT
+              Value: "3050"
         - Name: "backend-flask"
           Image: !Ref EcrImage
           Essential: true
@@ -166,6 +199,8 @@ Resources:
               Value: !Ref EnvBackendUrl
             - Name: "AWS_DEFAULT_REGION"
               Value: !Ref AWS::Region
+            - Name: "JWT_VERIFIER_SIDECAR_URL"
+              Value: !Ref JwtVerifierSidecarUrl
           Secrets:
             - Name: "AWS_ACCESS_KEY_ID"
               ValueFrom: !Ref SecretsAWSAccessKeyId
@@ -220,7 +255,7 @@ Resources:
       Policies:
         - PolicyName: "SSMAccessPolicy"
           PolicyDocument:
-            Version: "2012-10-17" 
+            Version: "2012-10-17"
             Statement:
               - Effect: "Allow"
                 Action:
