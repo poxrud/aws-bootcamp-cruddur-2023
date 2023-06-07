@@ -73,11 +73,6 @@ Parameters:
     Default: "http://localhost:3050"
 
 Resources:
-  ClusterNamespace:
-    Type: AWS::ServiceDiscovery::HttpNamespace
-    Properties:
-      Description: String
-      Name: cruddur-ns
   FargateService:
     Type: AWS::ECS::Service
     Properties:
@@ -108,7 +103,8 @@ Resources:
       PropagateTags: SERVICE
       ServiceConnectConfiguration:
         Enabled: true
-        Namespace: !GetAtt ClusterNamespace.Arn
+        Namespace:
+          Fn::ImportValue: !Sub "${ClusterStack}Namespace"
         Services:
           - DiscoveryName: backend-flask
             PortName: backend-flask
@@ -131,7 +127,7 @@ Resources:
       ContainerDefinitions:
         - Name: "xray"
           Image: "public.ecr.aws/xray/aws-xray-daemon"
-          Essential: true
+          Essential: false
           User: "1337"
           PortMappings:
             - Name: "xray"

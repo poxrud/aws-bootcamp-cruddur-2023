@@ -60,7 +60,7 @@ Parameters:
     Default: "/api/health-check"
   BackendHealthCheckPort:
     Type: String
-    Default: 80
+    Default: 4567
   BackendHealthCheckProtocol:
     Type: String
     Default: HTTP
@@ -73,7 +73,15 @@ Parameters:
   BackendUnhealthyThresholdCount:
     Type: Number
     Default: 2
+  BackendNamespace:
+    Type: String
+    Default: "cruddur-ns"
 Resources:
+  ClusterNamespace:
+    Type: AWS::ServiceDiscovery::HttpNamespace
+    Properties:
+      Description: String
+      Name: cruddur-ns
   FargateCluster:
     Type: "AWS::ECS::Cluster"
     Properties:
@@ -87,7 +95,7 @@ Resources:
         ExecuteCommandConfiguration:
           Logging: DEFAULT
       ServiceConnectDefaults:
-        Namespace: cruddur
+        Namespace: !Ref BackendNamespace
   ALB:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
     Properties:
@@ -266,3 +274,7 @@ Outputs:
     Value: !Ref BackendTG
     Export:
       Name: !Sub "${AWS::StackName}BackendTGArn"
+  Namespace:
+    Value: !Ref BackendNamespace
+    Export:
+      Name: !Sub "${AWS::StackName}Namespace"
