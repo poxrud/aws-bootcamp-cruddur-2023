@@ -4,6 +4,13 @@ vscode:
     - cweijan.vscode-postgresql-client2
 
 tasks:
+  - name: aws-sam
+    before: |
+      cd /workspace
+      wget https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+      unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+      sudo ./sam-installation/install
+      cd $THEIA_WORKSPACE_ROOT
   - name: aws-cli
     env:
       AWS_CLI_AUTO_PROMPT: on-partial
@@ -30,6 +37,11 @@ tasks:
     before: |
       cd "$THEIA_WORKSPACE_ROOT"/backend-flask/
       pip install -r requirements.txt
+  - name: cfn
+    before: |
+      pip install cfn-lint
+      cargo install cfn-guard
+      gem install cfn-toml
   - name: fargate
     before: |
       curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb"

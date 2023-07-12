@@ -1,7 +1,9 @@
 import './ActivityForm.css';
 import React from "react";
 import process from 'process';
-import {ReactComponent as BombIcon} from './svg/bomb.svg';
+import { ReactComponent as BombIcon } from './svg/bomb.svg';
+
+import { getAccessToken } from "../lib/CheckAuth";
 
 export default function ActivityForm(props) {
   const [count, setCount] = React.useState(0);
@@ -10,7 +12,7 @@ export default function ActivityForm(props) {
 
   const classes = []
   classes.push('count')
-  if (240-count < 0){
+  if (240 - count < 0) {
     classes.push('err')
   }
 
@@ -19,9 +21,11 @@ export default function ActivityForm(props) {
     try {
       const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities`
       console.log('onsubmit payload', message)
+      const access_token = await getAccessToken();
       const res = await fetch(backend_url, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${access_token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
@@ -33,7 +37,7 @@ export default function ActivityForm(props) {
       let data = await res.json();
       if (res.status === 200) {
         // add activity to the feed
-        props.setActivities(current => [data,...current]);
+        props.setActivities(current => [data, ...current]);
         // reset and close the form
         setCount(0)
         setMessage('')
@@ -58,7 +62,7 @@ export default function ActivityForm(props) {
 
   if (props.popped === true) {
     return (
-      <form 
+      <form
         className='activity_form'
         onSubmit={onsubmit}
       >
@@ -66,16 +70,16 @@ export default function ActivityForm(props) {
           type="text"
           placeholder="what would you like to say?"
           value={message}
-          onChange={textarea_onchange} 
+          onChange={textarea_onchange}
         />
         <div className='submit'>
-          <div className={classes.join(' ')}>{240-count}</div>
+          <div className={classes.join(' ')}>{240 - count}</div>
           <button type='submit'>Crud</button>
           <div className='expires_at_field'>
             <BombIcon className='icon' />
             <select
               value={ttl}
-              onChange={ttl_onchange} 
+              onChange={ttl_onchange}
             >
               <option value='30-days'>30 days</option>
               <option value='7-days'>7 days</option>

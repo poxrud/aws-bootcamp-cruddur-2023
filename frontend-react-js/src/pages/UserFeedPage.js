@@ -1,5 +1,5 @@
 import './UserFeedPage.css';
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from 'react-router-dom';
 
 import DesktopNavigation from '../components/DesktopNavigation';
@@ -22,37 +22,39 @@ export default function UserFeedPage() {
 
   const params = useParams();
 
-  const loadData = async () => {
-    try {
-      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/@${params.handle}`
-      const access_token = await getAccessToken()
-      const res = await fetch(backend_url, {
-        headers: {
-          Authorization: `Bearer ${access_token}`
-        },
-        method: "GET"
-      });
-      let resJson = await res.json();
-      if (res.status === 200) {
-        console.log('setprofile', resJson.profile)
-        setProfile(resJson.profile)
-        setActivities(resJson.activities)
-      } else {
-        console.log(res)
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
 
-  React.useEffect(() => {
+  useEffect(() => {
+    async function loadData(params) {
+      try {
+        const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/@${params.handle}`
+        const access_token = await getAccessToken()
+        const res = await fetch(backend_url, {
+          headers: {
+            Authorization: `Bearer ${access_token}`
+          },
+          method: "GET"
+        });
+        let resJson = await res.json();
+        if (res.status === 200) {
+          console.log('setprofile', resJson.profile)
+          setProfile(resJson.profile)
+          setActivities(resJson.activities)
+        } else {
+          console.log(res)
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
     //prevents double call
     if (dataFetchedRef.current) return;
-    dataFetchedRef.current = true;
 
-    loadData();
+    loadData(params);
     checkAuth(setUser);
-  }, [])
+
+    dataFetchedRef.current = true;
+  }, [params])
 
   return (
     <article>

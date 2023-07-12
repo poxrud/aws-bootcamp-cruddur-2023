@@ -1,0 +1,12 @@
+[deploy]
+bucket = 'cfn-mycruddur-artifacts'
+region = 'ca-central-1'
+stack_name = 'CrdCicd'
+
+[parameters]
+ServiceStack = 'CrdSrvBackendFlask'
+ClusterStack = 'CrdCluster'
+GitHubBranch = 'prod'
+GithubRepo = 'poxrud/aws-bootcamp-cruddur-2023'
+ArtifactBucketName = "codepipeline-mycruddur-artifacts"
+BuildSpec = 'backend-flask/buildspec.yml'

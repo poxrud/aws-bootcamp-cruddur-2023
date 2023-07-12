@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  - CloudFront Distribution
+  - S3 Bucket for www.
+  - S3 Bucket for naked domain
+  - Bucket Policy
+
+Parameters:
+  CertificateArn:
+    Type: String
+  WwwBucketName:
+    Type: String
+  RootBucketName:
+    Type: String
+
+Resources:
+  WwwBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WWWBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${WWWBucket}/*"
+            Principal: "*"
+  RootBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref RootBucketName
+      WebsiteConfiguration:
+        RedirectAllRequestsTo:
+          HostName: !Ref WwwBucketName
+  WWWBucket:
+    Type: AWS::S3::Bucket
+    #DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref WwwBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  RootBucketDomain:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Sub ${RootBucketName}.
+      Name: !Sub ${RootBucketName}.
+      Type: A
+      AliasTarget:
+        # Specify Z2FDTNDATAQYW2. This is always the hosted zone ID when you create an alias record that routes traffic to a CloudFront distribution.
+        DNSName: !GetAtt DistributionForForwarding.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+  WwwBucketDomain:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Sub ${RootBucketName}.
+      Name: !Sub ${WwwBucketName}.
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt Distribution.DomainName
+        # Specify Z2FDTNDATAQYW2. This is always the hosted zone ID when you create an alias record that routes traffic to a CloudFront distribution.
+        HostedZoneId: Z2FDTNDATAQYW2
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - www.mycruddur.net
+        Comment: Frontend React Js for Cruddur for www.mycruddur.net
+        Enabled: true
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        Origins:
+          - DomainName: !GetAtt WWWBucket.DomainName
+            Id: WwwBucketOrigin
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginSSLProtocols:
+                - TLSv1
+                - TLSv1.1
+                - TLSv1.2
+                - SSLv3
+        DefaultCacheBehavior:
+          TargetOriginId: WwwBucketOrigin
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+  DistributionForForwarding:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - mycruddur.net
+        Comment: root domain to www forwarding
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt RootBucket.DomainName
+            Id: RootBucketOrigin
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+            OriginShield:
+              Enabled: False
+        DefaultCacheBehavior:
+          TargetOriginId: RootBucketOrigin
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
