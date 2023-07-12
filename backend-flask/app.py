@@ -65,7 +65,8 @@ cors = CORS(
   app,
   resources={r"/api/*": {"origins": origins}},
   expose_headers=["Authorization", "location", "link"],
-  allow_headers=["content-type", "if-modified-since", "traceparent", "Authorization"],
+  allow_headers=["content-type", "if-modified-since",
+                 "traceparent", "Authorization"],
   methods="OPTIONS,GET,HEAD,POST"
 )
 
@@ -134,9 +135,9 @@ def data_create_message():
 
   try:
     data = CognitoJwtToken.verify(auth_header)
-    # authenicatied request
-    app.logger.debug("authenicated")
-    app.logger.debug(data)
+    # authenticated request
+    LOGGER.debug("authenticated")
+    LOGGER.debug(data)
 
     cognito_user_id = data['sub']
 
@@ -168,8 +169,8 @@ def data_create_message():
     else:
       return model['data'], 200
   except TokenVerifyError as e:
-    # unauthenicatied request
-    app.logger.debug(e)
+    # unauthenticated request
+    LOGGER.debug(e)
     return {}, 401
 
 
@@ -223,15 +224,34 @@ def data_search():
 @app.route("/api/activities", methods=['POST', 'OPTIONS'])
 @cross_origin()
 def data_activities():
-  user_handle = 'philoxrud'
-  message = request.json['message']
-  ttl = request.json['ttl']
-  model = CreateActivity.run(message, user_handle, ttl)
-  if model['errors'] is not None:
-    return model['errors'], 422
-  else:
-    return model['data'], 200
-  return
+
+  auth_header = request.headers.get('Authorization')
+
+  if (auth_header == None):
+    LOGGER.debug("token not provided")
+    return {}, 401
+
+  try:
+    data = CognitoJwtToken.verify(auth_header)
+    # authenticated request
+    LOGGER.debug("authenticated")
+    LOGGER.debug(data)
+
+    cognito_user_id = data['sub']
+
+    message = request.json['message']
+    ttl = request.json['ttl']
+    model = CreateActivity.run(message, cognito_user_id, ttl)
+
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+
+  except TokenVerifyError as e:
+    # unauthenticated request
+    LOGGER.debug(e)
+    return {}, 401
 
 
 @app.route("/api/activities/<string:activity_uuid>", methods=['GET'])
@@ -285,7 +305,7 @@ def data_update_profile():
     else:
       return model['data'], 200
   except TokenVerifyError as e:
-    # unauthenicatied request
+    # unauthenticated request
     LOGGER.debug(e)
     return {}, 401
 

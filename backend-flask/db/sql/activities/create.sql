@@ -8,7 +8,7 @@ VALUES
       FROM
         public.users
       WHERE
-        users.handle = %(handle)s
+        users.cognito_user_id = %(cognito_user_id)s
       LIMIT
         1
     ), %(message)s, %(expires_at)s

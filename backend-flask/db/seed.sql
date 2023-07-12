@@ -9,6 +9,12 @@ VALUES
     'MOCK'
   ),
   (
+    'Alt Phil',
+    'philoxrud+alt@gmail.com',
+    'altphil',
+    'MOCK'
+  ),
+  (
     'John Smith',
     'philoxrud+johnsmith@gmail.com',
     'johnsmith',
