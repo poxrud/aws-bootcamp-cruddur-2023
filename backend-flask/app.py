@@ -1,20 +1,16 @@
-from flask import got_request_exception
-import rollbar.contrib.flask
-import rollbar
-from utils.logger import LOGGER
-from time import strftime
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry import trace
 from flask import Flask, request, g
-from flask_cors import CORS, cross_origin
+from flask_cors import cross_origin
 import os
+from time import strftime
+from utils.logger import LOGGER
 
+
+from lib.rollbar import init_rollbar
+from lib.xray import init_xray
+from aws_xray_sdk.core import xray_recorder
+from lib.honeycomb import init_honeycomb
+from lib.cors import init_cors
 from lib.cognito_jwt_token_service import jwt_required, CognitoJwtToken, TokenVerifyError
-
 from lib.helpers import model_json
 
 from services.users_short import *
@@ -30,46 +26,14 @@ from services.create_message import *
 from services.show_activity import *
 from services.update_profile import *
 
-# AWS X-RAY --------------
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
-xray_url = os.getenv("AWS_XRAY_URL")
-xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
-
-# Honeycomb --------------
-
-# Initialize tracing and an exporter that can send data to Honeycomb
-provider = TracerProvider()
-processor = BatchSpanProcessor(OTLPSpanExporter())
-provider.add_span_processor(processor)
-trace.set_tracer_provider(provider)
-tracer = trace.get_tracer(__name__)
-
-# CloudWatch Logs ------------
-
-
-# Rollbar -----------------
-
 app = Flask(__name__)
 
-# AWS X-RAY -------------
-XRayMiddleware(app, xray_recorder)
+init_rollbar(app)
+init_xray(app)
+init_honeycomb(app)
+init_cors(app)
 
-# Honeycomb -------------
-FlaskInstrumentor().instrument_app(app)
-RequestsInstrumentor().instrument()
-
-frontend = os.getenv('FRONTEND_URL')
-backend = os.getenv('BACKEND_URL')
-origins = [frontend, backend]
-cors = CORS(
-  app,
-  resources={r"/api/*": {"origins": origins}},
-  expose_headers=["Authorization", "location", "link"],
-  allow_headers=["content-type", "if-modified-since",
-                 "traceparent", "Authorization"],
-  methods="OPTIONS,GET,HEAD,POST"
-)
+LOGGER.debug("ONE")
 
 
 @app.route("/api/message_groups", methods=['GET'])
@@ -133,7 +97,7 @@ def default_home_feed(e):
   data = HomeActivities.run()
   return data, 200
 
-
+# @xray_recorder.capture('activities_home')
 @app.route("/api/activities/home", methods=['GET'])
 @jwt_required(on_error=default_home_feed)
 def data_home():
@@ -208,30 +172,6 @@ def data_update_profile():
     display_name=display_name
   )
   return model_json(model)
-
-
-rollbar_access_token = os.getenv('ROLLBAR_ACCESS_TOKEN')
-
-# @app.before_first_request
-
-
-def init_rollbar():
-  """init rollbar module"""
-  rollbar.init(
-      # access token
-      rollbar_access_token,
-      # environment name
-      'production',
-      # server root directory, makes tracebacks prettier
-      root=os.path.dirname(os.path.realpath(__file__)),
-      # flask already sets up logging
-      allow_logging_basic_config=False)
-
-  # send exceptions from `app` to rollbar, using flask's signal system.
-  got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
-
-
-init_rollbar()
 
 
 @app.after_request
