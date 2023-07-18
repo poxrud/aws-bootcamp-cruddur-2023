@@ -8,6 +8,8 @@
 .activity_feed_collection {
   display: flex;
   flex-direction: column;
+  background-color: rgba(0, 0, 0);
+  
 }
 
 .activity_feed_heading {

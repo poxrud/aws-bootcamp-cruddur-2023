@@ -9,6 +9,19 @@
   border-bottom: none;
 }
 
+.replies {
+  padding-left: 24px;
+  background: rgba(255,255,255,0.15);
+}
+
+.replies .activity_item {
+  background-color: var(--fg);
+}
+
+.activity_main {
+  padding: 16px;
+}
+
 .activity_item .activity_actions {
   display: flex;
   align-items: flex-end;
