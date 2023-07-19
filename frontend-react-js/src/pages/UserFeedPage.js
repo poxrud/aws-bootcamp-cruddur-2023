@@ -2,15 +2,16 @@ import './UserFeedPage.css';
 import React, { useEffect } from "react";
 import { useParams } from 'react-router-dom';
 
-import DesktopNavigation from '../components/DesktopNavigation';
-import DesktopSidebar from '../components/DesktopSidebar';
-import ActivityFeed from '../components/ActivityFeed';
-import ActivityForm from '../components/ActivityForm';
-import ProfileHeading from '../components/ProfileHeading';
-import ProfileForm from '../components/ProfileForm';
+import DesktopNavigation from 'components/DesktopNavigation';
+import DesktopSidebar from 'components/DesktopSidebar';
+import ActivityFeed from 'components/ActivityFeed';
+import ActivityForm from 'components/ActivityForm';
+import ProfileHeading from 'components/ProfileHeading';
+import ProfileForm from 'components/ProfileForm';
 
 
-import { checkAuth, getAccessToken } from '../lib/CheckAuth';
+import { checkAuth } from 'lib/CheckAuth';
+import { get } from 'lib/Requests';
 
 export default function UserFeedPage() {
   const [activities, setActivities] = React.useState([]);
@@ -22,29 +23,18 @@ export default function UserFeedPage() {
 
   const params = useParams();
 
-
   useEffect(() => {
     async function loadData(params) {
-      try {
-        const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/@${params.handle}`
-        const access_token = await getAccessToken()
-        const res = await fetch(backend_url, {
-          headers: {
-            Authorization: `Bearer ${access_token}`
-          },
-          method: "GET"
-        });
-        let resJson = await res.json();
-        if (res.status === 200) {
-          console.log('setprofile', resJson.profile)
-          setProfile(resJson.profile)
-          setActivities(resJson.activities)
-        } else {
-          console.log(res)
+      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/@${params.handle}`
+
+      await get(backend_url, {
+        auth: false,
+        success: (data) => {
+          console.log('setprofile', data.profile)
+          setProfile(data.profile)
+          setActivities(data.activities)
         }
-      } catch (err) {
-        console.log(err);
-      }
+      });
     };
 
     //prevents double call

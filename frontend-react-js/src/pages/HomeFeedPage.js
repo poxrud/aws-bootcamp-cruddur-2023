@@ -1,12 +1,13 @@
 import './HomeFeedPage.css';
 import React from "react";
 
-import DesktopNavigation from '../components/DesktopNavigation';
-import DesktopSidebar from '../components/DesktopSidebar';
-import ActivityFeed from '../components/ActivityFeed';
-import ActivityForm from '../components/ActivityForm';
-import ReplyForm from '../components/ReplyForm';
-import { checkAuth, getAccessToken } from '../lib/CheckAuth';
+import DesktopNavigation from 'components/DesktopNavigation';
+import DesktopSidebar from 'components/DesktopSidebar';
+import ActivityFeed from 'components/ActivityFeed';
+import ActivityForm from 'components/ActivityForm';
+import ReplyForm from 'components/ReplyForm';
+import { checkAuth, getAccessToken } from 'lib/CheckAuth';
+import { get } from 'lib/Requests';
 
 export default function HomeFeedPage() {
   const [activities, setActivities] = React.useState([]);
@@ -17,25 +18,16 @@ export default function HomeFeedPage() {
   const dataFetchedRef = React.useRef(false);
 
   const loadData = async () => {
-    try {
-      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/home`
-      const access_token = await getAccessToken();
-      const headers = (access_token ? {
-        Authorization: `Bearer ${access_token}`
-      } : {})
-      const res = await fetch(backend_url, {
-        headers: headers,
-        method: "GET"
-      });
-      let resJson = await res.json();
-      if (res.status === 200) {
-        setActivities(resJson)
-      } else {
-        console.log(res)
+    const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/activities/home`
+    const access_token = await getAccessToken();
+    const auth = !!access_token;
+
+    await get(backend_url, {
+      auth: auth,
+      success: (data) => {
+        setActivities(data)
       }
-    } catch (err) {
-      console.log(err);
-    }
+    });
   };
 
   React.useEffect(() => {

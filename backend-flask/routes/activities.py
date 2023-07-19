@@ -12,6 +12,7 @@ from services.create_activity import CreateActivity
 from services.search_activities import SearchActivities
 from services.create_reply import CreateReply
 
+
 def load(app):
 
   def default_home_feed(e):
@@ -26,12 +27,10 @@ def load(app):
     data = HomeActivities.run(cognito_user_id=g.cognito_user_id)
     return data, 200
 
-
   @app.route("/api/activities/notifications", methods=['GET'])
   def data_notifications():
     data = NotificationsActivities.run()
     return data, 200
-
 
   @app.route("/api/activities/search", methods=['GET'])
   def data_search():
@@ -39,20 +38,15 @@ def load(app):
     model = SearchActivities.run(term)
     return model_json(model)
 
-
   @app.route("/api/activities", methods=['POST', 'OPTIONS'])
   @cross_origin()
   @jwt_required()
   def data_activities():
-    LOGGER.debug("authenticated")
-    LOGGER.debug(data)
-
     message = request.json['message']
     ttl = request.json['ttl']
     model = CreateActivity.run(message, g.cognito_user_id, ttl)
 
     return model_json(model)
-
 
   @app.route("/api/activities/<string:activity_uuid>/reply", methods=['POST', 'OPTIONS'])
   @cross_origin()

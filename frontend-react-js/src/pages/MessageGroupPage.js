@@ -2,7 +2,8 @@ import "./MessageGroupPage.css";
 import React from "react";
 import { useParams } from "react-router-dom";
 
-import { checkAuth, getAccessToken } from "../lib/CheckAuth";
+import { checkAuth } from "../lib/CheckAuth";
+import { get } from 'lib/Requests';
 
 import DesktopNavigation from "../components/DesktopNavigation";
 import MessageGroupFeed from "../components/MessageGroupFeed";
@@ -18,45 +19,26 @@ export default function MessageGroupPage() {
   const params = useParams();
 
   const loadMessageGroupsData = async () => {
-    try {
-      const access_token = await getAccessToken();
-      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/message_groups`;
-      const res = await fetch(backend_url, {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-        method: "GET",
-      });
-      let resJson = await res.json();
-      if (res.status === 200) {
-        setMessageGroups(resJson);
-      } else {
-        console.log(res);
+    const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/message_groups`;
+
+    await get(backend_url, {
+      auth: true,
+      success: (data) => {
+        setMessageGroups(data);
       }
-    } catch (err) {
-      console.log(err);
-    }
+    });
   };
 
   const loadMessageGroupData = async () => {
-    try {
-      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/messages/${params.message_group_uuid}`;
-      const access_token = await getAccessToken();
-      const res = await fetch(backend_url, {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-        method: "GET",
-      });
-      let resJson = await res.json();
-      if (res.status === 200) {
-        setMessages(resJson);
-      } else {
-        console.log(res);
+
+    const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/messages/${params.message_group_uuid}`;
+
+    await get(backend_url, {
+      auth: true,
+      success: (data) => {
+        setMessages(data);
       }
-    } catch (err) {
-      console.log(err);
-    }
+    });
   };
 
   React.useEffect(() => {
