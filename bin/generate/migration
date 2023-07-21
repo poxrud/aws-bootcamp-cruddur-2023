@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import time
+from datetime import datetime, timezone
 import os
 import sys
 
@@ -9,7 +9,7 @@ else:
   print("pass a filename: eg. ./bin/generate/migration add_bio_column")
   exit(0)
 
-timestamp = str(time.time()).replace(".", "")
+timestamp = int(datetime.now(timezone.utc).timestamp())
 
 filename = f"{timestamp}_{name}.py"
 

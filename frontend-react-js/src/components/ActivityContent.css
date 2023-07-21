@@ -10,11 +10,12 @@
 }
 
 .activity_content_wrap .activity_avatar {
-  background: rgb(149,0,255);
+  background: rgb(149, 0, 255);
   height: 60px;
   width: 60px;
   border-radius: 999px;
   flex-shrink: 0;
+  display: block;
 }
 
 .activity_content .activity_meta {
@@ -22,19 +23,32 @@
   justify-content: space-between;
 }
 
-.activity_content a.activity_identity {
+.activity_content .activity_identity {
   flex-grow: 1;
   text-decoration: none;
   font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.activity_content a.activity_identity .display_name {
+.activity_content .activity_identity a {
+  text-decoration: none;
+  display: block;
+  flex-shrink: 1;
+}
+
+.activity_content .activity_identity .display_name {
   font-weight: 800;
   color: #fff;
 }
 
-.activity_content  a.activity_identity .handle {
-  color: rgb(255,255,255,0.5);
+.activity_content .activity_identity .display_name:hover {
+  text-decoration: underline;
+}
+
+.activity_content .activity_identity .handle {
+  color: rgb(255, 255, 255, 0.5);
 }
 
 .activity_content .activity_times {
@@ -44,18 +58,19 @@
 }
 
 .activity_content .activity_times .created_at {
-  color: rgb(72,77,95);
+  color: rgb(72, 77, 95);
   font-size: 14px;
 }
 
 .activity_content .activity_times .expires_at {
-  color: rgb(149,0,255);
+  color: rgb(149, 0, 255);
   font-size: 14px;
   display: flex;
   gap: 2px;
 }
+
 .activity_content .activity_times .expires_at svg.icon {
-  fill: rgb(149,0,255);
+  fill: rgb(149, 0, 255);
   width: 14px;
   height: 14px;
 }

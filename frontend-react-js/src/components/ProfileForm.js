@@ -1,11 +1,15 @@
 import './ProfileForm.css';
 import React from "react";
 import process from 'process';
-import { getAccessToken } from '../lib/CheckAuth';
+import { getAccessToken } from 'lib/CheckAuth';
+
+import FormErrors from 'components/FormErrors';
+import { post } from 'lib/Requests';
 
 export default function ProfileForm(props) {
   const [bio, setBio] = React.useState('');
   const [displayName, setDisplayName] = React.useState('');
+  const [errors, setErrors] = React.useState([]);
 
   React.useEffect(() => {
     setBio(props.profile.bio || '');
@@ -73,32 +77,25 @@ export default function ProfileForm(props) {
 
   const onsubmit = async (event) => {
     event.preventDefault();
-    try {
-      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/profile/update`
-      const access_token = await getAccessToken()
-      const res = await fetch(backend_url, {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          bio: bio,
-          display_name: displayName
-        }),
-      });
-      // let data = await res.json();
-      if (res.status === 200) {
-        setBio(null)
-        setDisplayName(null)
-        props.setPopped(false)
-      } else {
-        console.log(res)
+
+    const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/profile/update`
+    const payload_data = {
+      bio: bio,
+      display_name: displayName
+    };
+
+    await post(backend_url,
+      payload_data,
+      {
+        auth: true,
+        setErrors: setErrors,
+        success: (data) => {
+          setBio(null)
+          setDisplayName(null)
+          props.setPopped(false)
+        }
       }
-    } catch (err) {
-      console.log(err);
-    }
+    );
   }
 
   const bio_onchange = (event) => {
@@ -129,7 +126,6 @@ export default function ProfileForm(props) {
             </div>
           </div>
           <div className="popup_content">
-
             <input type="file" name="avatarupload" onChange={s3upload} />
 
             <div className="field display_name">
@@ -149,6 +145,7 @@ export default function ProfileForm(props) {
                 onChange={bio_onchange}
               />
             </div>
+            <FormErrors errors={errors} />
           </div>
         </form>
       </div>
