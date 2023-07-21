@@ -5,7 +5,7 @@ from utils.logger import LOGGER
 from services.users_short import UsersShort
 from services.update_profile import UpdateProfile
 from services.user_activities import UserActivities
-from services.show_activity import ShowActivities
+from services.show_activity import ShowActivity
 
 from lib.helpers import model_json
 from lib.cognito_jwt_token_service import jwt_required
@@ -32,11 +32,11 @@ def load(app):
     return model_json(model)
 
   @app.route("/api/activities/@<string:handle>", methods=['GET'])
-  def data_handle(handle):
+  def data_users_activities(handle):
     model = UserActivities.run(handle)
     return model_json(model)
 
-  @app.route("/api/activities/<string:activity_uuid>", methods=['GET'])
-  def data_show_activity(activity_uuid):
-    data = ShowActivity.run(activity_uuid=activity_uuid)
+  @app.route("/api/activities/@<string:handle>/status/<string:activity_uuid>", methods=['GET'])
+  def data_show_activity(handle, activity_uuid):
+    data = ShowActivity.run(activity_uuid)
     return data, 200

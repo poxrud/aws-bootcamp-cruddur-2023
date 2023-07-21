@@ -47,6 +47,6 @@ FROM
   public.activities
   LEFT JOIN public.users ON users.uuid = activities.user_uuid
 WHERE
-  activities.uuid = %(uuid) s
+  activities.uuid = %(uuid)s
 ORDER BY
   activities.created_at DESC
