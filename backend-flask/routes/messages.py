@@ -36,7 +36,6 @@ def load(app):
 
     # authenticated request
     LOGGER.debug("authenticated")
-    LOGGER.debug(data)
 
     if message_group_uuid == None:
       # Create for the first time
