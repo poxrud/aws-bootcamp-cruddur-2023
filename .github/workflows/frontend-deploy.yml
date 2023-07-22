@@ -19,12 +19,12 @@ jobs:
           node-version: "18.x"
 
       - name: Install npm packages
-        continue-on-error: true
         run: |
           cd frontend-react-js
           npm i
 
       - name: Build prod
+        continue-on-error: true
         run: ./bin/frontend/static-build
 
       - name: Show created folder
