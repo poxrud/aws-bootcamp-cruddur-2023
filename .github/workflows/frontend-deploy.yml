@@ -1,0 +1,31 @@
+# Build and Deploy the frontend assets to AWS S3
+
+name: Deploy frontend
+
+on:
+  pull_request:
+    branches: [prod-frontend]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+
+      - name: Install npm packages
+        run: |
+          cd frontend-react-js
+          npm i
+
+      - name: Build prod
+        continue-on-error: true
+        run: ./bin/frontend/static-build
+
+      - name: Show created folder
+        run: ls -al frontend-react-js/build/
