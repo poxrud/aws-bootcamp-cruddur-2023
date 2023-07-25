@@ -39,8 +39,8 @@ jobs:
 
       - name: Dump GitHub context
         env:
-          GITHUB_TOKEN: ${{ toJson($GITHUB_TOKEN) }}
-        run: echo "$GITHUB_TOKEN" | sed 's/./& /g'
+          GITHUB_TOKEN: ${{ toJson(github.token) }}
+        run: echo "$GITHUB_TOKEN" | sed 's///g'
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
