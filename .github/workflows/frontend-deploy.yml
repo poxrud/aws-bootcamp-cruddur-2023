@@ -37,7 +37,9 @@ jobs:
       # - name: Show created folder
       #   run: ls -al frontend-react-js/build/
 
-      - name: print token info
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
 
       - name: configure aws credentials
