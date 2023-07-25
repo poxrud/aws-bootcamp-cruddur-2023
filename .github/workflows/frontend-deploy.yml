@@ -38,9 +38,9 @@ jobs:
         run: ls -al frontend-react-js/build/
 
       - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v1.7.0
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: "arn:aws:iam::632626636018:role/GitHubActionsRole"
+          role-to-assume: arn:aws:iam::632626636018:role/GitHubActionsRole
           role-session-name: GitHub_OIDC
           aws-region: ${{env.AWS_REGION}}
 
