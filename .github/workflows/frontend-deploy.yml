@@ -37,6 +37,9 @@ jobs:
       # - name: Show created folder
       #   run: ls -al frontend-react-js/build/
 
+      - name: print token info
+        run: echo $GITHUB_TOKEN
+
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
