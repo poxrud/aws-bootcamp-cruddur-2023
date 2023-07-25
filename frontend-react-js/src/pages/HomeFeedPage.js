@@ -55,7 +55,7 @@ export default function HomeFeedPage() {
         />
         <div className='activity_feed'>
           <div className='activity_feed_heading'>
-            <div className='title'>Home</div>
+            <div className='title'>Home - MyCruddur</div>
           </div>
           <ActivityFeed
             setReplyActivity={setReplyActivity}
