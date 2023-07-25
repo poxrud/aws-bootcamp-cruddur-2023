@@ -20,27 +20,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18.x"
+      # - name: Use Node.js
+      #   uses: actions/setup-node@v3
+      #   with:
+      #     node-version: "18.x"
 
-      - name: Install npm packages
-        run: |
-          cd frontend-react-js
-          npm i
+      # - name: Install npm packages
+      #   run: |
+      #     cd frontend-react-js
+      #     npm i
 
-      - name: Build prod
-        continue-on-error: true
-        run: ./bin/frontend/static-build
+      # - name: Build prod
+      #   continue-on-error: true
+      #   run: ./bin/frontend/static-build
 
-      - name: Show created folder
-        run: ls -al frontend-react-js/build/
+      # - name: Show created folder
+      #   run: ls -al frontend-react-js/build/
 
       - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v1.7.0
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: "arn:aws:iam::632626636018:role/GitHubActionsRole"
+          role-to-assume: arn:aws:iam::632626636018:role/GitHubActionsRole
           role-session-name: GitHub_OIDC
           aws-region: ${{env.AWS_REGION}}
 
