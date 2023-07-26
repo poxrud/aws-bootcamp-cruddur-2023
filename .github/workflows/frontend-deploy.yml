@@ -45,7 +45,7 @@ jobs:
       - name: Dump web id token2
         with:
           debug: true
-          run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+        run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
