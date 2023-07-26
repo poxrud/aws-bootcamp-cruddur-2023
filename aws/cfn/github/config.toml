@@ -2,3 +2,5 @@
 bucket = 'cfn-mycruddur-artifacts'
 region = 'ca-central-1'
 stack_name = 'GitHubOIDCProvider'
+WwwBucketName = 'www.mycruddur.net'
+distributionId = 'E19FFCVDAGBBCT'
