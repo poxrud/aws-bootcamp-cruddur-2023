@@ -3,7 +3,7 @@
 name: Deploy frontend
 
 on:
-  pull_request:
+  push:
     branches: [prod-frontend]
 
 env:
@@ -37,6 +37,16 @@ jobs:
       # - name: Show created folder
       #   run: ls -al frontend-react-js/build/
 
+      # - name: Dump GitHub context
+      #   env:
+      #     GITHUB_TOKEN: ${{ toJson(github) }}
+      #   run: echo "$GITHUB_TOKEN"
+
+      # - name: Dump web id token2
+      #   with:
+      #     debug: true
+      #   run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -44,5 +54,5 @@ jobs:
           role-session-name: GitHub_OIDC
           aws-region: ${{env.AWS_REGION}}
 
-      - name: try to run aws command
+      - name: try to run aws command.
         run: aws sts get-caller-identity
