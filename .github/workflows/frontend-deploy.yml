@@ -37,10 +37,15 @@ jobs:
       # - name: Show created folder
       #   run: ls -al frontend-react-js/build/
 
-      - name: Dump GitHub context
+      # - name: Dump GitHub context
+      #   env:
+      #     GITHUB_TOKEN: ${{ toJson(github) }}
+      #   run: echo "$GITHUB_TOKEN"
+
+      - name: Dump web id token
         env:
-          GITHUB_TOKEN: ${{ toJson(github) }}
-        run: echo "$GITHUB_TOKEN"
+          AWS_WEB_IDENTITY_TOKEN_FILE: .git/aws.web.identity.token.file
+        run: echo "$AWS_WEB_IDENTITY_TOKEN_FILE"
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
