@@ -54,5 +54,5 @@ jobs:
           role-session-name: GitHub_OIDC
           aws-region: ${{env.AWS_REGION}}
 
-      - name: try to run aws command.
+      - name: try to run aws command
         run: aws sts get-caller-identity
