@@ -42,7 +42,7 @@ jobs:
       #     GITHUB_TOKEN: ${{ toJson(github) }}
       #   run: echo "$GITHUB_TOKEN"
 
-      - name: Dump web id token
+      - name: Dump web id token2
         env:
           AWS_WEB_IDENTITY_TOKEN_FILE: .git/aws.web.identity.token.file
         run: cat "$AWS_WEB_IDENTITY_TOKEN_FILE"
