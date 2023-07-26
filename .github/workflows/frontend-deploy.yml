@@ -37,16 +37,6 @@ jobs:
       # - name: Show created folder
       #   run: ls -al frontend-react-js/build/
 
-      # - name: Dump GitHub context
-      #   env:
-      #     GITHUB_TOKEN: ${{ toJson(github) }}
-      #   run: echo "$GITHUB_TOKEN"
-
-      # - name: Dump web id token2
-      #   with:
-      #     debug: true
-      #   run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
-
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -55,4 +45,4 @@ jobs:
           aws-region: ${{env.AWS_REGION}}
 
       - name: try to run aws command
-        run: aws sts get-caller-identity
+        run: aws s3 ls www.mycruddur.net
