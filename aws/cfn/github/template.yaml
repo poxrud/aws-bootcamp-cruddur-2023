@@ -13,7 +13,6 @@ Resources:
     Type: "AWS::IAM::Role"
     Properties:
       RoleName: "GitHubActionsRole"
-
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -24,6 +23,23 @@ Resources:
             Condition:
               StringEquals:
                 {
-                  "token.actions.githubusercontent.com:sub": "repo: poxrud/aws-bootcamp-cruddur-2023:ref:refs/heads/prod-frontend",
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:poxrud/aws-bootcamp-cruddur-2023:ref:refs/heads/prod-frontend",
                 }
+  SyncToS3BucketPermission:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: SyncToS3BucketPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:ListBucket"
+            Resource:
+              - "arn:aws:s3:::www.mycruddur.net"
+              - "arn:aws:s3:::www.mycruddur.net/*"
+      Roles:
+        - !Ref GitHubActionsRole
