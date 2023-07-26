@@ -14,6 +14,21 @@ permissions:
   contents: read
 
 jobs:
+  job:
+    environment: Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install OIDC Client from Core Package
+        run: npm install @actions/core@1.6.0 @actions/http-client
+      - name: Get Id Token
+        uses: actions/github-script@v6
+        id: idtoken
+        with:
+          script: |
+            const coredemo = require('@actions/core')
+            let id_token = await coredemo.getIDToken()
+            coredemo.setOutput('id_token', id_token)
+
   deploy:
     runs-on: ubuntu-22.04
 
@@ -42,10 +57,10 @@ jobs:
       #     GITHUB_TOKEN: ${{ toJson(github) }}
       #   run: echo "$GITHUB_TOKEN"
 
-      - name: Dump web id token2
-        with:
-          debug: true
-        run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+      # - name: Dump web id token2
+      #   with:
+      #     debug: true
+      #   run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
