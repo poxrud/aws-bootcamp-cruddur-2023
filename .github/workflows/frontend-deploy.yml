@@ -35,8 +35,6 @@ jobs:
         continue-on-error: true
         run: ./bin/frontend/static-build
 
-      - name: Show created folder
-        run: ls -al frontend-react-js/build/
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -46,4 +44,4 @@ jobs:
           aws-region: ${{env.AWS_REGION}}
 
       - name: sync frontend website
-        run: aws s3 sync frontend-react-js/build/ s3://my-bucket/${{env.BUCKET}}
+        run: aws s3 sync frontend-react-js/build/ s3://${{env.BUCKET}}/
