@@ -3,7 +3,7 @@
 name: Deploy frontend
 
 on:
-  pull_request:
+  push:
     branches: [prod-frontend]
 
 env:
