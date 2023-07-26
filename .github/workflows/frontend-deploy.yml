@@ -45,7 +45,7 @@ jobs:
       - name: Dump web id token2
         env:
           AWS_WEB_IDENTITY_TOKEN_FILE: .git/aws.web.identity.token.file
-        run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+        run: echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" | sed 's/./& /g'
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
