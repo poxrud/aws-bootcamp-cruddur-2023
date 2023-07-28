@@ -1,7 +1,7 @@
 [deploy]
 bucket = 'cfn-mycruddur-artifacts'
 region = 'ca-central-1'
-stack_name = 'GitHubOIDCProvider'
+stack_name = 'CrdSyncRole'
 
 [parameters]
 WwwBucketName = 'www.mycruddur.net'
