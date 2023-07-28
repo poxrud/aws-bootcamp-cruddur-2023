@@ -267,4 +267,40 @@ Here we can see that dynamodb works because we can send direct messages to users
 
 - setup Github Actions for pushes to Prod, to build frontend and sync it
 
-- fixed root domain forwarding to www forwarding
+## Root domain forwarding to www
+
+In order to create a better user experience and improved SEO, I implemented
+the following website forwarding rules for the _mycruddur.net_ website:
+
+- `https://mycruddur.net`    => `https://www.mycruddur.net`
+- `http://mycruddur.net`     => `https://www.mycruddur.net`
+- `http://www.mycruddur.net` => `https://www.mycruddur.net`
+
+These forwarding rules can be verified by visiting the above URL's. 
+
+Implementing these forwarding rules required changes to S3, R53, and CloudFront. 
+
+### Implementation  
+To achieve this required two S3 buckets and two CloudFront distributions. 
+
+#### Bucket 1
+- This is a public bucket that is called `www.mycruddur.net` and hosts the static frontend assets for the website.
+
+#### Bucket 2
+This is a public bucket that is called `mycruddur.net` and is setup to forward requests to `www.mycruddur.net`
+
+![root_bucket_redirect](/assets/root_bucket_redirect.png)
+
+#### Main CloudFront Distribution for www.mycruddur.net
+This is the main distribution that will cache and forward requests to the `www.mycruddur.net` bucket. `R53` will point the `www` `Alias` record to this distribution.
+
+This distribution is also setup to redirect _http_ to _https_
+
+#### Second CloudFront Distribution for mycruddur.net
+`R53` will forward the root domain `mycruddur.net` to this distribution, through an `Alias` record. This distribution will then forward to the s3 bucket `mycruddur.net`, which will then forward to `https://www.mycruddur.net`
+
+The only reason this distribution is required is for its HTTPS termination. If we did not require https then it would be possible to directly forward R53 => S3 bucket. 
+
+To summarize:
+- R53 (www.mycruddur.net) => CloudFlare Distribution 1 => S3 (www.mycruddur.net)
+- R53 (mycruddur.net) => CloudFlare Distribution 2 => S3 (mycruddur.net) => (www.mycruddur.net)
