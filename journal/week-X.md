@@ -265,7 +265,196 @@ Here we can see that dynamodb works because we can send direct messages to users
 
 # EXTRA CREDIT
 
-- setup Github Actions for pushes to Prod, to build frontend and sync it
+## Github Actions Workflow for Building and Syncing Frontend Assets
+I created a GitHub Actions workflow that builds the frontend assets, and syncs them with the existing s3 `www.mycrudder.net` bucket. It then invalidates the CloudFront distribution for the `www.mycruddur.net` website.
+
+This workflow gets triggered on pushes or pull request merges into the `prod-frontend` branch. 
+
+Here is the GitHub Actions workflow file, that can be found in:
+- `.github/workflows/frontend-deploy.yml`
+
+```yml
+# Build and Deploy the frontend assets to AWS S3
+
+name: Deploy frontend
+
+on:
+  push:
+    branches: [prod-frontend]
+
+env:
+  AWS_REGION: "ca-central-1"
+  BUCKET: "www.mycruddur.net"
+  CF_DISTRIBUTION_ID: "E19FFCVDAGBBCT"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+
+      - name: Install npm packages
+        run: |
+          cd frontend-react-js
+          npm i
+
+      - name: Build prod
+        continue-on-error: true
+        run: ./bin/frontend/static-build
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::632626636018:role/GitHubActionsRole
+          role-session-name: GitHub_OIDC
+          aws-region: ${{env.AWS_REGION}}
+
+      - name: sync frontend website and create CF invalidation
+        run: |
+          aws s3 sync frontend-react-js/build/ s3://${{env.BUCKET}}/
+          aws cloudfront create-invalidation --distribution-id ${{env.CF_DISTRIBUTION_ID}} --paths "/*"
+
+```
+The Workflow executes the following steps:
+- set up NodeJS
+- install npm packages for the project
+- builds a static site for production
+- uses AWS credentials by assuming an AWS Role
+- syncs the frontend using the `aws s3 sync` command
+- invalidates the CloudFormation distribution
+
+![github_actions_assets_build](/assets/github_actions_assets_build.png)
+
+### GitHub Actions Authentication and Roles
+
+Github authenticates with AWS through the use of the `IAM OIDCProvider`. The IODCProvider assigns GitHub an _IAM Role_ with the permissions to sync to the `www.mycruddur.net` bucket and invoke a cloudfront invalidation. GitHub assumes this Role when running AWS cli commands.
+
+The OIDCProvider, the GitHub access Role and its Trust and Permission policies were all created using CloudFormation. Under the `CrdSyncRole` stack name.
+
+Here is CloudFormation template:
+
+- `aws/cfn/github/template.yml`
+
+```yml
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  WwwBucketName:
+    Type: String
+  distributionId:
+    Type: String
+
+Resources:
+  GitHubOIDCProvider:
+    Type: "AWS::IAM::OIDCProvider"
+    Properties:
+      ClientIdList:
+        - "sts.amazonaws.com"
+      ThumbprintList:
+        - "6938fd4d98bab03faadb97b34396831e3780aea1"
+      Url: https://token.actions.githubusercontent.com
+
+  GitHubActionsRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "GitHubActionsRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals:
+                {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:poxrud/aws-bootcamp-cruddur-2023:ref:refs/heads/prod-frontend",
+                }
+  SyncToS3BucketPermission:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: SyncToS3BucketPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:PutObject"
+              - "s3:DeleteObject"
+              - "s3:ListBucket"
+            Resource:
+              - !Sub "arn:aws:s3:::${WwwBucketName}"
+              - !Sub "arn:aws:s3:::${WwwBucketName}/*"
+          - Effect: Allow
+            Action:
+              - "cloudfront:CreateInvalidation"
+            Resource:
+              - !Sub "arn:aws:cloudfront::632626636018:distribution/${distributionId}"
+      Roles:
+        - !Ref GitHubActionsRole
+
+```
+
+ 
+ Please note that the role has a trust policy that only allows connections from the `poxrud/aws-bootcamp-cruddur-2023` repo and the `prod-frontend` branch. 
+
+ This is accomplished with the Condition as described below:
+
+ ```yml
+  Action: "sts:AssumeRoleWithWebIdentity"
+  Condition:
+    StringEquals:
+      {
+        ...
+        "token.actions.githubusercontent.com:sub": "repo:poxrud/aws-bootcamp-cruddur-2023:ref:refs/heads/prod-frontend",
+      }
+ ```
+
+The stack is executed with the following bin script:
+
+- `bin/cfn/github`
+
+```sh
+#! /usr/bin/env bash
+set -e # stop the execution of the script if it fails
+
+CFN_PATH="/workspace/aws-bootcamp-cruddur-2023/aws/cfn/github/template.yaml"
+CONFIG_PATH="/workspace/aws-bootcamp-cruddur-2023/aws/cfn/github/config.toml"
+echo $CFN_PATH
+
+cfn-lint $CFN_PATH
+
+BUCKET=$(cfn-toml key deploy.bucket -t $CONFIG_PATH)
+REGION=$(cfn-toml key deploy.region -t $CONFIG_PATH)
+STACK_NAME=$(cfn-toml key deploy.stack_name -t $CONFIG_PATH)
+PARAMETERS=$(cfn-toml params v2 -t $CONFIG_PATH)
+
+aws cloudformation deploy \
+  --stack-name $STACK_NAME \
+  --s3-bucket $BUCKET \
+  --s3-prefix github-actions \
+  --region $REGION \
+  --template-file "$CFN_PATH" \
+  --no-execute-changeset \
+  --tags group=github-actions-IODC \
+  --parameter-overrides $PARAMETERS \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
+Here is a successful update to the production website. The Title was changed locally from "Home" to "Home MyCruddur" and then the changes were pushed to `prod-frontend`
+
+![](/assets/github_actions_deploy_success.png)
 
 ## Root domain forwarding to www
 
