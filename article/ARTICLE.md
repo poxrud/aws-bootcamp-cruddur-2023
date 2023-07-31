@@ -145,7 +145,7 @@ For this tutorial we will create a workflow file called `frontend-deploy.yml` an
             role-session-name: GitHub_OIDC
             aws-region: ${{env.AWS_REGION}}
   
-        - name: sync frontend website and create CF invalidation
+        - name: sync frontend website
           run: |
             aws s3 sync my-react-project/build/ s3://${{env.BUCKET}}/
   ```
